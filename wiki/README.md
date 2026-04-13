@@ -1,6 +1,6 @@
 # Wiki sources
 
-The pages in this directory are the source-of-truth for the [Poli-Track GitHub wiki](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/wiki). They live in-repo so they're version-controlled alongside the code they describe.
+The pages in this directory are the source-of-truth for the [Poli-Track GitHub wiki](https://github.com/poli-track-os/poli-track-os/wiki). They live in-repo so they're version-controlled alongside the code they describe.
 
 ## Pushing to the GitHub wiki
 
@@ -8,7 +8,7 @@ GitHub wikis are backed by a separate git repository at `<repo>.wiki.git`. It is
 
 ### One-time bootstrap
 
-1. Open https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/wiki and click **Create the first page**.
+1. Open https://github.com/poli-track-os/poli-track-os/wiki and click **Create the first page**.
 2. Paste the contents of `Home.md` and save. This creates the underlying wiki repo.
 
 ### Syncing the rest
@@ -16,7 +16,7 @@ GitHub wikis are backed by a separate git repository at `<repo>.wiki.git`. It is
 Once the wiki repo exists:
 
 ```bash
-git clone git@github.com:BlueVelvetSackOfGoldPotatoes/poli-track.wiki.git /tmp/poli-track-wiki
+git clone git@github.com:poli-track-os/poli-track-os.wiki.git /tmp/poli-track-wiki
 cp wiki/*.md /tmp/poli-track-wiki/
 cd /tmp/poli-track-wiki
 git add .

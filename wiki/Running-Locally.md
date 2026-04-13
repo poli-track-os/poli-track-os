@@ -11,7 +11,7 @@ Poli-Track is a React SPA that reads from a Supabase project. Everything visible
 ## Clone and install
 
 ```bash
-git clone https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track.git
+git clone https://github.com/poli-track-os/poli-track-os.git
 cd poli-track
 npm install
 cp .env.example .env
@@ -26,7 +26,7 @@ cp .env.example .env
 | `VITE_SUPABASE_URL` | Supabase project URL |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon key (safe for the browser) |
 
-The client fails fast with a readable error if either is missing (see [`src/integrations/supabase/client.ts`](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/src/integrations/supabase/client.ts)).
+The client fails fast with a readable error if either is missing (see [`src/integrations/supabase/client.ts`](https://github.com/poli-track-os/poli-track-os/blob/main/src/integrations/supabase/client.ts)).
 
 ## Dev server
 
@@ -54,6 +54,6 @@ npm run check       # lint + typecheck + test + build (what CI runs)
 
 ## Running the ingestion pipeline
 
-The ingesters live as Supabase edge functions in [`supabase/functions/`](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/tree/main/supabase/functions). To run them locally you need the Supabase CLI and a local Supabase stack. See [Ingestion Pipeline](Ingestion-Pipeline) for details.
+The ingesters live as Supabase edge functions in [`supabase/functions/`](https://github.com/poli-track-os/poli-track-os/tree/main/supabase/functions). To run them locally you need the Supabase CLI and a local Supabase stack. See [Ingestion Pipeline](Ingestion-Pipeline) for details.
 
-The GitHub Action at [`.github/workflows/ingest.yml`](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/.github/workflows/ingest.yml) runs the same functions on a weekly cron against the hosted Supabase project. It needs `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set as repository secrets.
+The GitHub Action at [`.github/workflows/ingest.yml`](https://github.com/poli-track-os/poli-track-os/blob/main/.github/workflows/ingest.yml) runs the same functions on a weekly cron against the hosted Supabase project. It needs `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set as repository secrets.

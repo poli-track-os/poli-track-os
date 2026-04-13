@@ -1,8 +1,8 @@
 # Ingestion pipeline
 
-Seven Supabase edge functions handle everything that moves data into Poli-Track. They live under [`supabase/functions/`](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/tree/main/supabase/functions) and are scheduled by [`.github/workflows/ingest.yml`](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/.github/workflows/ingest.yml).
+Seven Supabase edge functions handle everything that moves data into Poli-Track. They live under [`supabase/functions/`](https://github.com/poli-track-os/poli-track-os/tree/main/supabase/functions) and are scheduled by [`.github/workflows/ingest.yml`](https://github.com/poli-track-os/poli-track-os/blob/main/.github/workflows/ingest.yml).
 
-> For a byte-level breakdown — every field, every regex, every table write — see [INGESTION.md](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/INGESTION.md).
+> For a byte-level breakdown — every field, every regex, every table write — see [INGESTION.md](https://github.com/poli-track-os/poli-track-os/blob/main/INGESTION.md).
 
 ## The functions
 
@@ -77,5 +77,5 @@ limit 20;
 ## Caveats
 
 - **No per-row transactions.** A crash mid-batch leaves partial state. The run row will be marked `failed` with the error message.
-- **Wikipedia disambiguation is best-effort.** Common names can occasionally resolve to the wrong article; see [INGESTION.md](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/INGESTION.md) for the guardrails.
+- **Wikipedia disambiguation is best-effort.** Common names can occasionally resolve to the wrong article; see [INGESTION.md](https://github.com/poli-track-os/poli-track-os/blob/main/INGESTION.md) for the guardrails.
 - **`political_events` has no idempotency key.** Re-running `scrape-twitter` or `scrape-un-votes` without additional dedupe will insert duplicate event rows. Scheduling is spaced to make this unlikely in practice.

@@ -3,7 +3,7 @@ import { formatTimestampLabel } from '@/lib/date-display';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useThemeModeContext } from '@/lib/theme-mode-context';
 
-const REPOSITORY_URL = 'https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track';
+const REPOSITORY_URL = 'https://github.com/poli-track-os/poli-track-os';
 
 interface SiteFooterProps {
   lastUpdatedAt?: string;

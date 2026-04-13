@@ -32,6 +32,6 @@ Poli-Track is an open-source explorer for European political data: members of pa
 
 ## Development
 
-- [Contributing](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/CONTRIBUTING.md)
-- Full architecture doc: [ARCHITECTURE.md](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/ARCHITECTURE.md)
-- Full ingestion doc: [INGESTION.md](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/INGESTION.md)
+- [Contributing](https://github.com/poli-track-os/poli-track-os/blob/main/CONTRIBUTING.md)
+- Full architecture doc: [ARCHITECTURE.md](https://github.com/poli-track-os/poli-track-os/blob/main/ARCHITECTURE.md)
+- Full ingestion doc: [INGESTION.md](https://github.com/poli-track-os/poli-track-os/blob/main/INGESTION.md)

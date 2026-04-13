@@ -15,7 +15,7 @@ The directory of every tracked politician.
 |---|---|
 | `usePoliticians()` | `politicians ORDER BY name` |
 
-Rows are mapped from the raw Supabase shape to the app's `Actor` type via `mapPoliticianToActor` in [`src/hooks/use-politicians.ts`](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/src/hooks/use-politicians.ts). That mapping is where defaults like `party = party_abbreviation ?? party_name ?? 'Independent'` happen.
+Rows are mapped from the raw Supabase shape to the app's `Actor` type via `mapPoliticianToActor` in [`src/hooks/use-politicians.ts`](https://github.com/poli-track-os/poli-track-os/blob/main/src/hooks/use-politicians.ts). That mapping is where defaults like `party = party_abbreviation ?? party_name ?? 'Independent'` happen.
 
 ## Code
 

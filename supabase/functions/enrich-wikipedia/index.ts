@@ -20,7 +20,7 @@ const corsHeaders = {
 
 const WIKI_API = "https://en.wikipedia.org/api/rest_v1";
 const WIKI_ACTION = "https://en.wikipedia.org/w/api.php";
-const USER_AGENT = "PoliticalTracker/1.0 (https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track)";
+const USER_AGENT = "PoliticalTracker/1.0 (https://github.com/poli-track-os/poli-track-os)";
 
 // P2.6: rate limiter + Retry-After respect.
 // Wikipedia asks for <200 req/s; we hold ourselves to ~5 req/s with a

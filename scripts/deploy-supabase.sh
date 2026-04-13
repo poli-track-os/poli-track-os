@@ -4,7 +4,7 @@
 # Prereqs (one-time):
 #   1. Install the Supabase CLI:    https://supabase.com/docs/guides/cli
 #   2. supabase login               (OAuth in browser)
-#   3. supabase link --project-ref jwhffgsoigbgshwkkxta
+#   3. supabase link --project-ref zygnkwyogazhwxfeatfc
 #
 # Then run this script from the repo root:
 #   bash scripts/deploy-supabase.sh
@@ -26,7 +26,7 @@ if ! command -v supabase >/dev/null 2>&1; then
 fi
 
 if [ ! -f supabase/config.toml ]; then
-  echo "error: supabase/config.toml missing. Run 'supabase link --project-ref jwhffgsoigbgshwkkxta' first." >&2
+  echo "error: supabase/config.toml missing. Run 'supabase link --project-ref zygnkwyogazhwxfeatfc' first." >&2
   exit 1
 fi
 
@@ -56,4 +56,4 @@ done
 echo
 echo "==> Done. You can now trigger the ingest workflow:"
 echo "    gh workflow run ingest.yml -f target=eu-parliament"
-echo "    (or via https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/actions/workflows/ingest.yml)"
+echo "    (or via https://github.com/poli-track-os/poli-track-os/actions/workflows/ingest.yml)"

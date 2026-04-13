@@ -1,6 +1,6 @@
 # Poli-Track
 
-[![CI](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/actions/workflows/ci.yml/badge.svg)](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/actions/workflows/ci.yml)
+[![CI](https://github.com/poli-track-os/poli-track-os/actions/workflows/ci.yml/badge.svg)](https://github.com/poli-track-os/poli-track-os/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 <p align="center">
@@ -33,7 +33,7 @@ It is built for people who want to look up how a country voted on something, wha
 ## Quick start
 
 ```bash
-git clone https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track.git
+git clone https://github.com/poli-track-os/poli-track-os.git
 cd poli-track
 npm install
 cp .env.example .env
