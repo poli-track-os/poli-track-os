@@ -1,0 +1,196 @@
+name: Ingest
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which ingester to run
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - country-metadata
+          - eu-parliament
+          - official-rosters
+          - national-parliament
+          - wikipedia
+          - press-rss
+          - un-votes
+          - eu-legislation
+          - mep-committees
+          - mep-reports
+          - mep-declarations
+          - seed-positions
+          - seed-associations
+      country_code:
+        description: ISO2 country code (for national-parliament or country-metadata)
+        required: false
+        default: ''
+  schedule:
+    # Weekly: Monday 03:00 UTC.
+    - cron: '0 3 * * 1'
+
+concurrency:
+  group: ingest-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    name: Trigger Supabase edge functions
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Guard and normalize secrets
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY repo secrets are required."
+            exit 1
+          fi
+          # Strip whitespace + trailing slashes, ensure https:// scheme.
+          CLEAN_URL=$(printf '%s' "$SUPABASE_URL" | tr -d '[:space:]' | sed 's:/*$::')
+          case "$CLEAN_URL" in
+            http://*|https://*) ;;
+            *) CLEAN_URL="https://$CLEAN_URL" ;;
+          esac
+          # Validate it at least parses as a URL.
+          if ! printf '%s' "$CLEAN_URL" | grep -Eq '^https?://[A-Za-z0-9.-]+(/.*)?$'; then
+            echo "::error::SUPABASE_URL is not a valid URL after normalization."
+            exit 1
+          fi
+          echo "SUPABASE_URL=$CLEAN_URL" >> "$GITHUB_ENV"
+          # Diagnostic: length only, never the value itself.
+          echo "Normalized SUPABASE_URL length: ${#CLEAN_URL}"
+
+      - name: Scrape EU Parliament
+        if: github.event_name == 'schedule' || inputs.target == 'all' || inputs.target == 'eu-parliament'
+        run: |
+          curl --fail-with-body -sSL -X POST "$SUPABASE_URL/functions/v1/scrape-eu-parliament" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"offset": 0, "batchSize": 1000}'
+
+      - name: Sync official national rosters
+        if: github.event_name == 'schedule' || inputs.target == 'all' || inputs.target == 'official-rosters'
+        run: |
+          if [ -n "${{ inputs.country_code }}" ]; then
+            COUNTRIES="${{ inputs.country_code }}"
+          else
+            COUNTRIES="PT,DE"
+          fi
+          node --experimental-strip-types scripts/sync-official-rosters.ts \
+            --apply \
+            --expect-project-ref jwhffgsoigbgshwkkxta \
+            --countries "$COUNTRIES"
+
+      - name: Scrape national parliament
+        if: inputs.target == 'national-parliament' && inputs.country_code != ''
+        run: |
+          curl --fail-with-body -sSL -X POST "$SUPABASE_URL/functions/v1/scrape-national-parliament" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"countryCode\": \"${{ inputs.country_code }}\", \"batchSize\": 100, \"offset\": 0}"
+
+      - name: Backfill Wikipedia enrichment
+        if: github.event_name == 'schedule' || inputs.target == 'all' || inputs.target == 'wikipedia'
+        run: |
+          for i in $(seq 1 20); do
+            curl --fail-with-body -sSL -X POST "$SUPABASE_URL/functions/v1/enrich-wikipedia" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Content-Type: application/json" \
+              -d '{"batchSize": 50}'
+          done
+
+      - name: Refresh country metadata cache
+        if: github.event_name == 'schedule' || inputs.target == 'all' || inputs.target == 'country-metadata'
+        run: |
+          if [ -n "${{ inputs.country_code }}" ]; then
+            BODY="{\"countryCode\":\"${{ inputs.country_code }}\",\"force\":true}"
+          else
+            BODY='{"force":true}'
+          fi
+          curl --fail-with-body -sSL -X POST "$SUPABASE_URL/functions/v1/sync-country-metadata" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$BODY"
+
+      - name: Pull EU press release RSS
+        if: github.event_name == 'schedule' || inputs.target == 'all' || inputs.target == 'press-rss'
+        run: |
+          curl --fail-with-body -sSL -X POST "$SUPABASE_URL/functions/v1/scrape-twitter" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+
+      - name: Pull UN General Assembly votes
+        if: github.event_name == 'schedule' || inputs.target == 'all' || inputs.target == 'un-votes'
+        run: |
+          curl --fail-with-body -sSL -X POST "$SUPABASE_URL/functions/v1/scrape-un-votes" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+
+      - name: Pull EUR-Lex legislation
+        if: github.event_name == 'schedule' || inputs.target == 'all' || inputs.target == 'eu-legislation'
+        run: |
+          curl --fail-with-body -sSL -X POST "$SUPABASE_URL/functions/v1/scrape-eu-legislation" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"sinceDate": "2025-01-01", "limit": 300}'
+
+      - name: Harvest MEP committees
+        if: github.event_name == 'schedule' || inputs.target == 'all' || inputs.target == 'mep-committees'
+        run: |
+          curl --fail-with-body -sSL -X POST "$SUPABASE_URL/functions/v1/scrape-mep-committees" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"batchSize": 40}'
+
+      - name: Harvest MEP reports (rapporteur activity)
+        if: github.event_name == 'schedule' || inputs.target == 'all' || inputs.target == 'mep-reports'
+        run: |
+          curl --fail-with-body -sSL -X POST "$SUPABASE_URL/functions/v1/scrape-mep-reports" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"batchSize": 40}'
+
+      - name: Harvest MEP declarations
+        if: github.event_name == 'schedule' || inputs.target == 'all' || inputs.target == 'mep-declarations'
+        run: |
+          curl --fail-with-body -sSL -X POST "$SUPABASE_URL/functions/v1/scrape-mep-declarations" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"batchSize": 40}'
+
+      - name: Seed political positions from party family mapping
+        if: github.event_name == 'schedule' || inputs.target == 'all' || inputs.target == 'seed-positions'
+        run: |
+          curl --fail-with-body -sSL -X POST "$SUPABASE_URL/functions/v1/seed-positions" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"batchSize": 1000, "overwrite": true}'
+
+      - name: Seed associations from shared party + committee
+        if: github.event_name == 'schedule' || inputs.target == 'all' || inputs.target == 'seed-associations'
+        run: |
+          curl --fail-with-body -sSL -X POST "$SUPABASE_URL/functions/v1/seed-associations" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"maxPerPolitician": 20}'

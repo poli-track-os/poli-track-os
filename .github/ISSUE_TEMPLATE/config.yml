@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security policy
+    url: https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/SECURITY.md
+    about: Read this before reporting a vulnerability.
+  - name: Support guide
+    url: https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/SUPPORT.md
+    about: Use the right channel for bugs, docs, and feature requests.
