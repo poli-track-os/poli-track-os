@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Poli Track | EU Political Data Explorer</title>
+    <meta name="application-name" content="Poli Track" />
+    <meta name="theme-color" content="#f4efe2" />
+    <script>
+      (() => {
+        try {
+          const storageKey = 'poli-track-theme';
+          const stored = window.localStorage.getItem(storageKey);
+          const systemDark =
+            typeof window.matchMedia === 'function' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const theme = stored === 'dark' || stored === 'light' ? stored : systemDark ? 'dark' : 'light';
+          const root = document.documentElement;
+          root.classList.toggle('dark', theme === 'dark');
+          root.style.colorScheme = theme;
+          const themeMeta = document.querySelector('meta[name="theme-color"]');
+          if (themeMeta) {
+            themeMeta.setAttribute('content', theme === 'dark' ? '#14191f' : '#f4efe2');
+          }
+        } catch {}
+      })();
+    </script>
+    <meta
+      name="description"
+      content="Open-source EU political data explorer for proposals, politicians, relationships, and comparative civic datasets."
+    />
+    <meta name="author" content="Poli Track" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Poli Track | EU Political Data Explorer" />
+    <meta property="og:locale" content="en_US" />
+    <meta
+      property="og:description"
+      content="Open-source EU political data explorer for proposals, politicians, relationships, and comparative civic datasets."
+    />
+    <meta property="og:site_name" content="Poli Track" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Poli Track | EU Political Data Explorer" />
+    <meta
+      name="twitter:description"
+      content="Open-source EU political data explorer for proposals, politicians, relationships, and comparative civic datasets."
+    />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

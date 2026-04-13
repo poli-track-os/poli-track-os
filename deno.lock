@@ -1,0 +1,41 @@
+{
+  "version": "5",
+  "remote": {
+    "https://esm.sh/@supabase/supabase-js@2.49.1": "947c71e163ca8bb5b538eccb5ee86fbc8da6bcb916a861586db5fad1af4701bb",
+    "https://esm.sh/fast-xml-parser@4.5.0": "dda1468785f0f4b2aa19b52d3bc32decb360f632628d5648b06737b4a3bc3a0a"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@eslint/js@^9.32.0",
+        "npm:@supabase/supabase-js@^2.103.0",
+        "npm:@tanstack/react-query@^5.83.0",
+        "npm:@testing-library/jest-dom@^6.6.0",
+        "npm:@testing-library/react@16",
+        "npm:@types/node@^22.16.5",
+        "npm:@types/react-dom@^18.3.7",
+        "npm:@types/react@^18.3.23",
+        "npm:@vitejs/plugin-react-swc@^3.11.0",
+        "npm:autoprefixer@^10.4.21",
+        "npm:eslint-plugin-react-hooks@^5.2.0",
+        "npm:eslint-plugin-react-refresh@~0.4.20",
+        "npm:eslint@^9.32.0",
+        "npm:globals@^15.15.0",
+        "npm:jsdom@^20.0.3",
+        "npm:lovable-tagger@^1.1.13",
+        "npm:lucide-react@0.462",
+        "npm:postcss@^8.5.6",
+        "npm:react-dom@^18.3.1",
+        "npm:react-router-dom@^6.30.1",
+        "npm:react@^18.3.1",
+        "npm:recharts@^2.15.4",
+        "npm:tailwindcss-animate@^1.0.7",
+        "npm:tailwindcss@^3.4.17",
+        "npm:typescript-eslint@^8.38.0",
+        "npm:typescript@^5.8.3",
+        "npm:vite@^5.4.19",
+        "npm:vitest@^3.2.4"
+      ]
+    }
+  }
+}
