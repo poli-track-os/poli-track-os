@@ -89,4 +89,4 @@ Parliamentary proposals (bills, referendums, initiatives, counter-proposals).
 
 ## Migrations
 
-All schema changes live under [`supabase/migrations/`](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/tree/main/supabase/migrations) and are applied in timestamp order. Generated TypeScript types are in [`src/integrations/supabase/types.ts`](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/src/integrations/supabase/types.ts).
+All schema changes live under [`supabase/migrations/`](https://github.com/poli-track-os/poli-track-os/tree/main/supabase/migrations) and are applied in timestamp order. Generated TypeScript types are in [`src/integrations/supabase/types.ts`](https://github.com/poli-track-os/poli-track-os/blob/main/src/integrations/supabase/types.ts).

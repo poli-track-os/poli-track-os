@@ -28,7 +28,7 @@ Single-politician profile. This is the richest page in the app — it pulls from
 
 ## Evidence tags
 
-Event types carry a `source` badge (e.g. `OFFICIAL`, `NEWS`, `PARLIAMENT`) with color mapping defined in [`src/data/domain.ts`](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/src/data/domain.ts).
+Event types carry a `source` badge (e.g. `OFFICIAL`, `NEWS`, `PARLIAMENT`) with color mapping defined in [`src/data/domain.ts`](https://github.com/poli-track-os/poli-track-os/blob/main/src/data/domain.ts).
 
 ## Code
 

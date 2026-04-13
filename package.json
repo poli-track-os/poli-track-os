@@ -7,12 +7,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track.git"
+    "url": "git+https://github.com/poli-track-os/poli-track-os.git"
   },
   "bugs": {
-    "url": "https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/issues"
+    "url": "https://github.com/poli-track-os/poli-track-os/issues"
   },
-  "homepage": "https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track#readme",
+  "homepage": "https://github.com/poli-track-os/poli-track-os#readme",
   "keywords": [
     "eu",
     "politics",

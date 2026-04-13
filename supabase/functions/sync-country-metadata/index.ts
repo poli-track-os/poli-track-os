@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const USER_AGENT = "PoliTrackCountrySync/1.0 (https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track)";
+const USER_AGENT = "PoliTrackCountrySync/1.0 (https://github.com/poli-track-os/poli-track-os)";
 const DEFAULT_STALE_AFTER_HOURS = 24 * 6;
 
 function serializeError(error: unknown): string {

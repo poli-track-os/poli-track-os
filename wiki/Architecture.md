@@ -93,4 +93,4 @@ Poli-Track is a single-page React app that reads directly from a Supabase Postgr
 | CI | `.github/workflows/ci.yml` |
 | Ingestion scheduler | `.github/workflows/ingest.yml` |
 
-The full architecture document with diagrams, design tokens, and per-component notes is in [ARCHITECTURE.md](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/ARCHITECTURE.md).
+The full architecture document with diagrams, design tokens, and per-component notes is in [ARCHITECTURE.md](https://github.com/poli-track-os/poli-track-os/blob/main/ARCHITECTURE.md).

@@ -97,7 +97,7 @@ jobs:
           fi
           node --experimental-strip-types scripts/sync-official-rosters.ts \
             --apply \
-            --expect-project-ref jwhffgsoigbgshwkkxta \
+            --expect-project-ref zygnkwyogazhwxfeatfc \
             --countries "$COUNTRIES"
 
       - name: Scrape national parliament

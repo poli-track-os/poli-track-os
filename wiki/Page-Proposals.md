@@ -18,7 +18,7 @@ All tracked parliamentary proposals. Filterable by country, status, and policy a
 | `useProposals({ countryCode, status, policyArea })` | `proposals` with optional WHERE clauses |
 | `useProposalStats()` | `proposals` aggregated in JS |
 
-Both hooks live in [`src/hooks/use-proposals.ts`](https://github.com/BlueVelvetSackOfGoldPotatoes/poli-track/blob/main/src/hooks/use-proposals.ts). The status and type labels (`ADOPTED`, `REJECTED`, `COMMITTEE`, etc.) come from `statusLabels` in that file.
+Both hooks live in [`src/hooks/use-proposals.ts`](https://github.com/poli-track-os/poli-track-os/blob/main/src/hooks/use-proposals.ts). The status and type labels (`ADOPTED`, `REJECTED`, `COMMITTEE`, etc.) come from `statusLabels` in that file.
 
 ## Code
 
