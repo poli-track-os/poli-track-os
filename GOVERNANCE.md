@@ -4,7 +4,7 @@
 
 As of 2026-04-12, the repository is maintained by:
 
-- `@BlueVelvetSackOfGoldPotatoes`
+- `@poli-track-os`
 
 ## Decision model
 
