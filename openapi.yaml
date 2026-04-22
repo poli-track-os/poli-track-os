@@ -1,0 +1,468 @@
+openapi: 3.1.0
+info:
+  title: Poli-Track API
+  version: "1.0.0-alpha.1"
+  summary: Open-source EU political data explorer — HTTP API.
+  description: |
+    The Poli-Track API exposes every piece of data that powers the
+    [poli-track.org](https://poli-track.org) SPA via three layers:
+
+    1. **Layer 1 — raw tables**. Supabase PostgREST at `/rest/v1/*` and
+       pg_graphql at `/graphql/v1`. Documented separately by Supabase;
+       this spec cross-references those surfaces for completeness but does
+       not re-enumerate them.
+    2. **Layer 2 — canonical graph**. Kind-agnostic read endpoints over
+       the `entities`, `entity_aliases`, `relationships`, `claims`, and
+       `political_events` tables. Good for cross-entity queries and LLM
+       navigation.
+    3. **Layer 3 — per-page aggregators**. One endpoint per SPA route,
+       returning the full composite shape the React page needs. Good for
+       one-shot "fetch everything about X" requests.
+
+    Every Layer 2/3 endpoint:
+    - Accepts `Accept: application/json` (default) and `Accept: text/markdown`
+      (where a markdown rendering is implemented).
+    - Returns a stable envelope: `{ ok, data, meta, provenance }`.
+    - Emits `Cache-Control` and `ETag` headers.
+    - Sends CORS `*` so it is callable from any browser.
+    - Is public and rate-limited by IP; heavy consumers can attach an
+      `Authorization: Bearer <api_key>` header for higher limits.
+
+    **Raw tables**: for any table under `public.*`, you can use the
+    PostgREST endpoint at `${baseUrl}/rest/v1/{table}`. See the Supabase
+    project's auto-generated PostgREST OpenAPI at
+    `${baseUrl}/rest/v1/` for the full schema.
+
+  contact:
+    name: Poli-Track maintainers
+    url: https://github.com/poli-track-os/poli-track-os
+  license:
+    name: MIT
+    url: https://github.com/poli-track-os/poli-track-os/blob/main/LICENSE
+
+servers:
+  - url: https://zygnkwyogazhwxfeatfc.supabase.co/functions/v1
+    description: Production (Supabase edge functions)
+
+tags:
+  - name: entity
+    description: Canonical entity graph (Layer 2)
+  - name: page
+    description: Per-page aggregators (Layer 3)
+  - name: search
+    description: Cross-entity search
+  - name: mcp
+    description: Model Context Protocol remote transport
+
+paths:
+  /entity:
+    get:
+      tags: [entity]
+      summary: Canonical entity card
+      description: |
+        Returns one entity (person, party, country, proposal, committee,
+        lobby_org, ...) with its aliases, claims, incoming and outgoing
+        relationships, and a recent-events slice.
+
+        Accepts either JSON or Markdown via content negotiation. Markdown
+        is optimized for LLM prompts.
+      parameters:
+        - name: kind
+          in: query
+          required: true
+          schema: { type: string, enum: [person, party, country, proposal, committee, lobby_org, institution] }
+        - name: slug
+          in: query
+          required: true
+          schema: { type: string }
+        - name: format
+          in: query
+          required: false
+          schema: { type: string, enum: [json, markdown], default: markdown }
+      responses:
+        "200":
+          description: Entity card
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EntityEnvelope" }
+            text/markdown:
+              schema: { type: string }
+        "404":
+          description: No such entity
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } }
+
+  /search:
+    get:
+      tags: [search]
+      summary: Global search across canonical entities
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+        - name: kind
+          in: query
+          required: false
+          schema: { type: string }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+      responses:
+        "200":
+          description: Matching entities
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/SearchEnvelope" } }
+
+  /graph:
+    get:
+      tags: [entity]
+      summary: Graph slice around a seed entity
+      parameters:
+        - name: seed
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+        - name: depth
+          in: query
+          required: false
+          schema: { type: integer, default: 1, minimum: 1, maximum: 3 }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 100, maximum: 500 }
+      responses:
+        "200":
+          description: Nodes and edges
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/GraphEnvelope" } }
+
+  /timeline:
+    get:
+      tags: [entity]
+      summary: Cross-entity timeline of political events
+      parameters:
+        - name: subject_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: country
+          in: query
+          schema: { type: string, example: DE }
+        - name: event_type
+          in: query
+          schema: { type: string }
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Events plus optional pagination cursor
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/TimelineEnvelope" } }
+
+  /page/home:
+    get:
+      tags: [page]
+      summary: Landing page payload (/)
+      responses:
+        "200":
+          description: Home page snapshot
+          content: { application/json: { schema: { $ref: "#/components/schemas/Envelope" } } }
+
+  /page/explore:
+    get:
+      tags: [page]
+      summary: Explore page payload (/explore)
+      responses:
+        "200":
+          description: Countries grouped by continent
+          content: { application/json: { schema: { $ref: "#/components/schemas/Envelope" } } }
+
+  /page/actors:
+    get:
+      tags: [page]
+      summary: Paginated politicians list (/actors)
+      parameters:
+        - { name: country, in: query, schema: { type: string } }
+        - { name: query,   in: query, schema: { type: string } }
+        - { name: limit,   in: query, schema: { type: integer, default: 50, maximum: 200 } }
+        - { name: offset,  in: query, schema: { type: integer, default: 0 } }
+      responses:
+        "200":
+          description: Politicians list + filters metadata
+          content: { application/json: { schema: { $ref: "#/components/schemas/Envelope" } } }
+
+  /page/actor/{id}:
+    get:
+      tags: [page]
+      summary: Full actor dossier (/actors/:id)
+      description: |
+        Composite: politician + events + finances + investments + positions
+        + associates + lobby meetings + committee URLs + wiki fallback +
+        source attribution. The canonical "everything about a politician"
+        response.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Actor dossier
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Envelope" } }
+            text/markdown:    { schema: { type: string } }
+
+  /page/country/{code}:
+    get:
+      tags: [page]
+      summary: Country page payload (/country/:code)
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string, example: DE } }
+      responses:
+        "200":
+          description: Country composite
+          content:
+            application/json: { schema: { $ref: "#/components/schemas/Envelope" } }
+            text/markdown:    { schema: { type: string } }
+
+  /page/party/{country}/{party}:
+    get:
+      tags: [page]
+      summary: Party page payload (/country/:country/party/:party)
+      parameters:
+        - { name: country, in: path, required: true, schema: { type: string } }
+        - { name: party,   in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Party composite, content: { application/json: { schema: { $ref: "#/components/schemas/Envelope" } } } }
+
+  /page/proposals:
+    get:
+      tags: [page]
+      summary: Proposals list (/proposals)
+      parameters:
+        - { name: country, in: query, schema: { type: string } }
+        - { name: status,  in: query, schema: { type: string } }
+        - { name: area,    in: query, schema: { type: string } }
+        - { name: query,   in: query, schema: { type: string } }
+        - { name: limit,   in: query, schema: { type: integer, default: 50, maximum: 200 } }
+        - { name: offset,  in: query, schema: { type: integer, default: 0 } }
+      responses:
+        "200": { description: Proposals list, content: { application/json: { schema: { $ref: "#/components/schemas/Envelope" } } } }
+
+  /page/proposal/{id}:
+    get:
+      tags: [page]
+      summary: Proposal detail (/proposals/:id)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Proposal composite, content: { application/json: { schema: { $ref: "#/components/schemas/Envelope" } } } }
+
+  /page/relationships:
+    get:
+      tags: [page]
+      summary: Relationships page payload (/relationships)
+      responses:
+        "200": { description: Relationships, content: { application/json: { schema: { $ref: "#/components/schemas/Envelope" } } } }
+
+  /page/data:
+    get:
+      tags: [page]
+      summary: Data page payload (/data)
+      responses:
+        "200": { description: Coverage ledger, content: { application/json: { schema: { $ref: "#/components/schemas/Envelope" } } } }
+
+  /page/budget/{country}:
+    get:
+      tags: [page]
+      summary: Country budget snapshot (/budgets)
+      parameters:
+        - { name: country, in: path, required: true, schema: { type: string, example: DE } }
+        - { name: year,    in: query, schema: { type: integer } }
+      responses:
+        "200": { description: Budget composite, content: { application/json: { schema: { $ref: "#/components/schemas/Envelope" } } } }
+
+  /page/lobby:
+    get:
+      tags: [page]
+      summary: Lobby register (/lobby)
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+        - { name: limit,  in: query, schema: { type: integer, default: 50, maximum: 200 } }
+      responses:
+        "200": { description: Lobby orgs, content: { application/json: { schema: { $ref: "#/components/schemas/Envelope" } } } }
+
+  /page/lobby/{transparency_id}:
+    get:
+      tags: [page]
+      summary: Single lobby organisation (/lobby/:transparency_id)
+      parameters:
+        - { name: transparency_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Lobby org composite, content: { application/json: { schema: { $ref: "#/components/schemas/Envelope" } } } }
+
+  /page/timeline:
+    get:
+      tags: [page]
+      summary: Frontend-facing timeline (/timeline)
+      description: Wraps /timeline with the filter defaults the SPA uses.
+      parameters:
+        - { name: type,       in: query, schema: { type: string } }
+        - { name: source,     in: query, schema: { type: string } }
+        - { name: country,    in: query, schema: { type: string } }
+        - { name: subject_id, in: query, schema: { type: string, format: uuid } }
+        - { name: from,       in: query, schema: { type: string, format: date } }
+        - { name: to,         in: query, schema: { type: string, format: date } }
+        - { name: limit,      in: query, schema: { type: integer, default: 50, maximum: 200 } }
+        - { name: cursor,     in: query, schema: { type: string } }
+      responses:
+        "200": { description: Timeline slice, content: { application/json: { schema: { $ref: "#/components/schemas/Envelope" } } } }
+
+  /mcp:
+    post:
+      tags: [mcp]
+      summary: MCP Streamable HTTP endpoint (stateless)
+      description: |
+        Implements the Model Context Protocol Streamable HTTP transport.
+        Accepts JSON-RPC 2.0 messages on POST and returns either a single
+        JSON response or an SSE stream.
+
+        See `docs/mcp.md` for connection instructions.
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          description: MCP JSON-RPC response or SSE stream
+          content:
+            application/json: { schema: { type: object } }
+            text/event-stream: { schema: { type: string } }
+
+components:
+  schemas:
+    Envelope:
+      type: object
+      required: [ok, data, meta, provenance]
+      properties:
+        ok: { type: boolean, enum: [true] }
+        data: { type: object }
+        meta: { $ref: "#/components/schemas/Meta" }
+        provenance:
+          type: array
+          items: { $ref: "#/components/schemas/Provenance" }
+
+    ErrorEnvelope:
+      type: object
+      required: [ok, error, meta]
+      properties:
+        ok: { type: boolean, enum: [false] }
+        error:
+          type: object
+          required: [code, message, http_status]
+          properties:
+            code:        { type: string, example: NOT_FOUND }
+            message:     { type: string }
+            http_status: { type: integer }
+        meta: { $ref: "#/components/schemas/Meta" }
+
+    Meta:
+      type: object
+      required: [fetched_at, schema_version]
+      properties:
+        fetched_at:        { type: string, format: date-time }
+        schema_version:    { type: string, example: "1" }
+        cache_ttl_seconds: { type: integer }
+        row_counts:        { type: object, additionalProperties: { type: integer } }
+
+    Provenance:
+      type: object
+      required: [kind, data_source]
+      properties:
+        kind:         { type: string }
+        id:           { type: string }
+        source_url:   { type: string }
+        data_source:  { type: string }
+        trust_level:  { type: integer, minimum: 1, maximum: 4 }
+        fetched_at:   { type: string, format: date-time }
+
+    EntityEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                entity: { type: object }
+                aliases: { type: array, items: { type: object } }
+                claims:  { type: array, items: { type: object } }
+                relationships_out: { type: array, items: { type: object } }
+                relationships_in:  { type: array, items: { type: object } }
+                recent_events:     { type: array, items: { type: object } }
+
+    SearchEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                results:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:             { type: string }
+                      kind:           { type: string }
+                      canonical_name: { type: string }
+                      slug:           { type: string }
+                      score:          { type: number }
+
+    GraphEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                nodes:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:             { type: string }
+                      kind:           { type: string }
+                      canonical_name: { type: string }
+                      slug:           { type: string }
+                edges:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      subject_id: { type: string }
+                      predicate:  { type: string }
+                      object_id:  { type: string }
+
+    TimelineEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                events:
+                  type: array
+                  items: { type: object }
+                next_cursor: { type: string, nullable: true }

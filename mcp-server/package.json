@@ -1,0 +1,53 @@
+{
+  "name": "@poli-track-os/mcp-server",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for Poli-Track — exposes the EU political data platform to any MCP-compatible LLM client (Claude Desktop, Cursor, etc.)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/poli-track-os/poli-track-os.git",
+    "directory": "mcp-server"
+  },
+  "homepage": "https://github.com/poli-track-os/poli-track-os/tree/main/mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/poli-track-os/poli-track-os/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "poli-track",
+    "eu",
+    "politics",
+    "claude",
+    "llm"
+  ],
+  "type": "module",
+  "bin": {
+    "poli-track-mcp": "dist/stdio.js"
+  },
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/stdio.js",
+    "dev": "tsx src/stdio.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}
