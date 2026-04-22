@@ -1,4 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  buildCommitteeSourceUrl,
+  mergeCommittees,
+  STABLE_UNKNOWN_TIMESTAMP,
+} from "./parsers.ts";
 
 function serializeError(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -154,40 +159,61 @@ Deno.serve(async (req) => {
       const { committees, delegations, rawLabels } = parseCommittees(html);
       if (committees.length === 0 && delegations.length === 0) continue;
 
-      const combined = [...committees, ...delegations];
-      const existing = new Set((mep.committees || []).map((c) => c.toLowerCase()));
-      const newMemberships = combined.filter((c) => !existing.has(c.toLowerCase()));
+      const scraped = [...committees, ...delegations];
+      // Union with the existing list so a transient EP page glitch (cache
+      // miss, partial render) cannot wipe out a previously-tracked
+      // committee assignment. mergeCommittees folds case for dedup.
+      const { merged, newMemberships } = mergeCommittees(mep.committees, scraped);
 
-      // Update the denormalized array on politicians
-      if (combined.length > 0) {
+      if (merged.length > 0) {
         await supabase
           .from("politicians")
-          .update({ committees: combined })
+          .update({ committees: merged })
           .eq("id", mep.id);
         updatedCount++;
       }
 
-      // Emit one committee_join event per new membership so the UI's
-      // event timeline shows when we first learned about each assignment.
-      const timestamp = new Date().toISOString();
+      // Emit one committee_join event per NEW membership.
+      //
+      // CRITICAL: each event needs:
+      //   1. a UNIQUE source_url per (mep, committee) — without this all
+      //      committees for one MEP collapse into a single row under the
+      //      partial unique index on (politician_id, source_url,
+      //      event_timestamp).
+      //   2. a STABLE event_timestamp — the previous wall-clock
+      //      `new Date().toISOString()` produced a fresh row every cron
+      //      run, so the unique index never matched and duplicate rows
+      //      accumulated indefinitely.
+      //
+      // We don't know when the MEP actually joined, so we use the Unix
+      // epoch as an "unknown / first observed" sentinel. It is stable,
+      // sorts first in the timeline, and is trivially recognizable.
       const eventRows = newMemberships.map((m) => ({
         politician_id: mep.id,
         event_type: "committee_join" as const,
         title: `Joined ${m}`,
         description: `Tracked as a current member of ${m}. Labels on source page: ${rawLabels.slice(0, 6).join(", ")}.`,
         source: "parliamentary_record" as const,
-        source_url: `https://www.europarl.europa.eu/meps/en/${mep.external_id}`,
-        event_timestamp: timestamp,
+        source_url: buildCommitteeSourceUrl(mep.external_id!, m),
+        event_timestamp: STABLE_UNKNOWN_TIMESTAMP,
         raw_data: { committees, delegations },
         evidence_count: 1,
         trust_level: 1,
       }));
 
       if (eventRows.length > 0) {
-        const { data: inserted } = await supabase
+        // CRITICAL: check the error on the upsert. The previous version
+        // only destructured `data` and silently ignored `error`, so a
+        // constraint target mismatch (or any other DB error) made the
+        // function report "0 events inserted" with a green status.
+        const { data: inserted, error: upsertErr } = await supabase
           .from("political_events")
           .upsert(eventRows, { onConflict: "politician_id,source_url,event_timestamp", ignoreDuplicates: true })
           .select("id");
+        if (upsertErr) {
+          console.error(`political_events upsert failed for mep ${mep.id}: ${upsertErr.message}`);
+          throw upsertErr;
+        }
         eventsInserted += inserted?.length ?? 0;
       }
     }

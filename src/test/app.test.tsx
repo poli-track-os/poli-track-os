@@ -65,6 +65,10 @@ vi.mock("@/hooks/use-proposals", () => ({
     ],
     isLoading: false,
   }),
+  useProposalTotalCount: () => ({
+    data: 1,
+    isLoading: false,
+  }),
 }));
 
 describe("App", () => {

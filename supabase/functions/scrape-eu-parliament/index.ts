@@ -178,26 +178,46 @@ Deno.serve(async (req) => {
       p_delta: created,
     });
 
-    // P2.7: chain enrich-wikipedia with explicit ids of the newly-created rows
-    let enrichmentTriggered = false;
+    // P2.7: chain enrich-wikipedia with explicit ids of the newly-created
+    // rows. The previous version sliced to the first 20 ids only — on a
+    // cold start this leaves ~698 of 718 MEPs unenriched until a separate
+    // cron run picks them up. Instead, chunk into groups of `enrich-
+    // wikipedia`'s max batch (50) and fire a request per chunk, tracking
+    // how many we triggered.
+    //
+    // Each chunked call is awaited but is bounded by `enrich-wikipedia`'s
+    // own 90s wall-clock cutoff, so we cap how many chunks we queue from
+    // here to ~3 so the parent function returns within its own deadline.
+    // Any leftovers will fall into `enrich-wikipedia`'s "null enriched_at"
+    // backlog and get drained by the next ingest run.
+    const ENRICH_CHUNK = 50;
+    const MAX_CHAINED_CHUNKS = 3;
+    let enrichmentTriggered = 0;
     if (createdIds.length > 0) {
-      try {
-        const enrichUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/enrich-wikipedia`;
-        await fetch(enrichUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          },
-          body: JSON.stringify({
-            politicianIds: createdIds.slice(0, 20),
-            parentRunId: runId,
-          }),
-          signal: AbortSignal.timeout(25000),
-        });
-        enrichmentTriggered = true;
-      } catch (e) {
-        console.log("Wikipedia enrichment trigger failed (non-blocking):", e);
+      const enrichUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/enrich-wikipedia`;
+      const totalChunks = Math.min(
+        Math.ceil(createdIds.length / ENRICH_CHUNK),
+        MAX_CHAINED_CHUNKS,
+      );
+      for (let i = 0; i < totalChunks; i++) {
+        const slice = createdIds.slice(i * ENRICH_CHUNK, (i + 1) * ENRICH_CHUNK);
+        try {
+          await fetch(enrichUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              politicianIds: slice,
+              parentRunId: runId,
+            }),
+            signal: AbortSignal.timeout(25000),
+          });
+          enrichmentTriggered += slice.length;
+        } catch (e) {
+          console.log(`Wikipedia enrichment chunk ${i + 1}/${totalChunks} failed (non-blocking):`, e);
+        }
       }
     }
 
@@ -209,7 +229,8 @@ Deno.serve(async (req) => {
       updated,
       next_offset: hasMore ? offset + batchSize : null,
       has_more: hasMore,
-      enrichment_triggered: enrichmentTriggered,
+      enrichment_triggered: enrichmentTriggered > 0,
+      enrichment_triggered_count: enrichmentTriggered,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error) {

@@ -57,20 +57,31 @@ export function PoliticalAxesBar({ position }: AxesBarProps) {
   return (
     <div className="space-y-3">
       {axes.map(ax => {
-        const pct = ((ax.value + 10) / 20) * 100;
+        // CRITICAL: a null/undefined score must NOT render as a 50% bar
+        // ("centered at 0" implies "moderate", which is misleading). Only
+        // render the indicator when the value is a finite number.
+        const numeric = typeof ax.value === 'number' && Number.isFinite(ax.value)
+          ? ax.value
+          : null;
+        const pct = numeric !== null ? ((numeric + 10) / 20) * 100 : null;
         return (
           <div key={ax.label}>
             <div className="flex justify-between text-[10px] font-mono text-muted-foreground mb-0.5">
               <span>{ax.left}</span>
-              <span className="font-bold text-foreground">{ax.label}</span>
+              <span className="font-bold text-foreground">
+                {ax.label}
+                {pct === null && <span className="ml-1 text-[9px] italic">(no data)</span>}
+              </span>
               <span>{ax.right}</span>
             </div>
             <div className="h-2.5 bg-muted rounded-full relative overflow-hidden">
               <div className="absolute inset-y-0 left-1/2 w-px bg-border" />
-              <div
-                className="absolute top-0 h-full w-3 rounded-full bg-primary"
-                style={{ left: `calc(${pct}% - 6px)` }}
-              />
+              {pct !== null && (
+                <div
+                  className="absolute top-0 h-full w-3 rounded-full bg-primary"
+                  style={{ left: `calc(${pct}% - 6px)` }}
+                />
+              )}
             </div>
           </div>
         );

@@ -38,6 +38,13 @@ vi.mock('@/components/CountryMiniGlobe', () => ({
   default: ({ countryName }: { countryName: string }) => <div>Globe preview for {countryName}</div>,
 }));
 
+// CountryBudgetPanel hits TanStack Query hooks against the new
+// government_expenditure / cofog_functions / country_demographics tables.
+// Stub it for unit tests that focus on country-level rendering.
+vi.mock('@/components/CountryBudgetPanel', () => ({
+  default: () => <div data-testid="country-budget-panel-stub" />,
+}));
+
 function makeActor(overrides: Record<string, unknown>) {
   return {
     id: 'actor-default',
@@ -247,18 +254,20 @@ describe('CountryDetail page', () => {
     expect(screen.getAllByText('Digital Sovereignty Act').length).toBeGreaterThan(0);
     expect(screen.getByText('Berlin')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'JUMP TO PROPOSALS' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'View Frank-Walter Steinmeier' })).toHaveAttribute('href', 'https://en.wikipedia.org/wiki/Frank-Walter_Steinmeier');
+    expect(screen.getByRole('link', { name: 'View Frank-Walter Steinmeier' })).toHaveAttribute('href', '/actors?country=de&q=Frank-Walter+Steinmeier');
+    expect(screen.getByRole('link', { name: 'Open officeholder source for Frank-Walter Steinmeier' })).toHaveAttribute('href', 'https://en.wikipedia.org/wiki/Frank-Walter_Steinmeier');
     expect(screen.getAllByRole('link', { name: 'View Ada Lovelace' }).some((node) => node.getAttribute('href') === '/actors/actor-1')).toBe(true);
     expect(screen.getAllByRole('link', { name: 'View Markus Vogel' })).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'View Markus Vogel' })).toHaveAttribute('href', '/actors/actor-3');
-    expect(screen.getByRole('link', { name: 'View Clara Weiss' })).toHaveAttribute('href', 'https://en.wikipedia.org/wiki/Clara_Weiss');
+    expect(screen.getByRole('link', { name: 'View Clara Weiss' })).toHaveAttribute('href', '/actors?country=de&q=Clara+Weiss');
     expect(screen.getByText('PEOPLE AT THE TOP OF THE PYRAMID')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'View Sofia Hartmann' })).toHaveAttribute('href', 'https://en.wikipedia.org/wiki/Sofia_Hartmann');
-    expect(screen.getByRole('link', { name: 'View Erik Brandt' })).toHaveAttribute('href', 'https://en.wikipedia.org/wiki/Erik_Brandt');
+    expect(screen.getByRole('link', { name: 'View Sofia Hartmann' })).toHaveAttribute('href', '/actors?country=de&q=Sofia+Hartmann');
+    expect(screen.getByRole('link', { name: 'View Erik Brandt' })).toHaveAttribute('href', '/actors?country=de&q=Erik+Brandt');
     expect(screen.getByText('LAST UPDATED · Apr 12, 2026, 10:30 UTC')).toBeInTheDocument();
     expect(screen.getByText('CACHED · SUPABASE')).toBeInTheDocument();
     expect(screen.getAllByText('centre-left political party in Germany').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Party leader Ada Lovelace' })).toHaveAttribute('href', '/actors/actor-1');
+    expect(screen.getByRole('link', { name: 'Open source for party leader Ada Lovelace' })).toHaveAttribute('href', 'https://en.wikipedia.org/wiki/Ada_Lovelace');
   });
 
   it('filters the actor list with the country search bar', async () => {
@@ -309,7 +318,82 @@ describe('CountryDetail page', () => {
     expect(screen.queryByText('Q610788')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View António Costa' })).toHaveAttribute(
       'href',
+      '/actors?country=pt&q=Ant%C3%B3nio+Costa',
+    );
+    expect(screen.getByRole('link', { name: 'Open officeholder source for António Costa' })).toHaveAttribute(
+      'href',
       'https://en.wikipedia.org/wiki/Ant%C3%B3nio_Costa',
     );
+  });
+
+  it('matches officeholders to tracked actors by profile url when labels differ', () => {
+    usePoliticiansByCountryMock.mockReturnValue({
+      data: [
+        makeActor({
+          id: 'actor-cy-1',
+          name: 'Nicos Christodoulides',
+          countryId: 'cy',
+          canton: 'Cyprus',
+          role: 'President',
+          wikipediaUrl: 'https://en.wikipedia.org/wiki/Nikos_Christodoulides',
+          revisionId: 'rev-cy001',
+        }),
+      ],
+      isLoading: false,
+    });
+
+    useCountryStatsMock.mockReturnValue({
+      data: [
+        { code: 'CY', name: 'Cyprus', continent: 'Europe', actorCount: 1, partyCount: 0, parties: [] },
+      ],
+    });
+
+    useCountryMetadataMock.mockReturnValue({
+      data: {
+        countryCode: 'CY',
+        countryName: 'Cyprus',
+        capital: 'Nicosia',
+        headOfState: 'Nicos Christodoulides',
+        headOfGovernment: 'Nicos Christodoulides',
+        officeholders: [
+          {
+            office: 'Head of State',
+            personName: 'Nicos Christodoulides',
+            personEntityId: 'Q48905549',
+            personUrl: 'https://en.wikipedia.org/wiki/Nikos_Christodoulides',
+          },
+          {
+            office: 'President',
+            personName: 'Nikolas Papadopoulos',
+            personEntityId: 'Q3161181',
+            personUrl: 'https://en.wikipedia.org/wiki/Nikolas_Papadopoulos',
+          },
+          {
+            office: "President of Citizens' Alliance (Cyprus)",
+            personName: 'Giorgos Lillikas',
+            personEntityId: 'Q694791',
+            personUrl: 'https://en.wikipedia.org/wiki/Giorgos_Lillikas',
+          },
+        ],
+      },
+    });
+
+    usePartiesMetadataMock.mockReturnValue({ data: {} });
+    useProposalsByCountryMock.mockReturnValue({ data: [] });
+
+    render(
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        initialEntries={['/country/cy']}
+      >
+        <Routes>
+          <Route path="/country/:id" element={<CountryDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: 'Head of state Nicos Christodoulides' })).toHaveAttribute('href', '/actors/actor-cy-1');
+    expect(screen.queryByText('Nikolas Papadopoulos')).not.toBeInTheDocument();
+    expect(screen.queryByText('Giorgos Lillikas')).not.toBeInTheDocument();
   });
 });

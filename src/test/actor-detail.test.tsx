@@ -50,6 +50,7 @@ let mockPosition = resolvePoliticalPosition({
     climate_action: 'moderate',
   },
 }, 'Chega', 'CH', 'PT');
+let mockCountryProposals: any[] = [];
 const mockWikipediaFallback = vi.fn(() => ({
   data: null,
 }));
@@ -71,7 +72,7 @@ vi.mock('@/hooks/use-politicians', () => ({
 
 vi.mock('@/hooks/use-proposals', () => ({
   useProposalsByCountry: () => ({
-    data: [],
+    data: mockCountryProposals,
   }),
   statusLabels: {},
   statusColors: {},
@@ -102,6 +103,12 @@ vi.mock('@/hooks/use-country-metadata', () => ({
   }),
 }));
 
+// ActorLobbyPanel uses useLobbyMeetingsForPolitician which hits Supabase.
+// Stub it for unit tests (separate vitest specs cover the hook).
+vi.mock('@/components/ActorLobbyPanel', () => ({
+  default: () => null,
+}));
+
 vi.mock('@/hooks/use-party-metadata', () => ({
   usePartyMetadata: () => ({
     data: {
@@ -124,6 +131,7 @@ vi.mock('@/hooks/use-party-metadata', () => ({
 describe('ActorDetail page', () => {
   it('replaces the legacy centrist bucket with the stricter Chega estimate', async () => {
     mockPolitician = { ...baseMockPolitician };
+    mockCountryProposals = [];
     mockPosition = resolvePoliticalPosition({
       ideology_label: 'Centrist / Unclassified',
       data_source: 'party_family_mapping',
@@ -166,6 +174,7 @@ describe('ActorDetail page', () => {
       wikipediaSummary: undefined,
       wikipediaData: undefined,
     };
+    mockCountryProposals = [];
     mockPosition = resolvePoliticalPosition({
       ideology_label: 'Centrist / Unclassified',
       data_source: 'party_family_mapping',
@@ -210,6 +219,7 @@ describe('ActorDetail page', () => {
       committees: [],
       wikipediaSummary: 'Stored biography',
     };
+    mockCountryProposals = [];
     mockPosition = {
       ideology_label: 'Unclassified',
       data_source: 'unclassified_party_profile',
@@ -235,10 +245,54 @@ describe('ActorDetail page', () => {
     expect(screen.getByText('COVERAGE SNAPSHOT')).toBeInTheDocument();
     expect(screen.getByText('Lisbon')).toBeInTheDocument();
     expect(screen.getByText('Chega is a Portuguese right-wing populist political party.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Head of state Marcelo Rebelo de Sousa' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Head of state Marcelo Rebelo de Sousa' })).toHaveAttribute(
+      'href',
+      '/actors?country=pt&q=Marcelo+Rebelo+de+Sousa',
+    );
+    expect(screen.getByRole('link', { name: 'Open source for Marcelo Rebelo de Sousa' })).toHaveAttribute(
+      'href',
+      'https://en.wikipedia.org/wiki/Marcelo_Rebelo_de_Sousa',
+    );
     expect(screen.getByRole('link', { name: 'Party website →' })).toBeInTheDocument();
     expect(screen.getByText(/party-family mapping does not classify it/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Assembly of the Republic/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Open source record' })).toBeInTheDocument();
+  });
+
+  it('keeps long related legislation titles wrapped inside the page layout', async () => {
+    mockPolitician = {
+      ...baseMockPolitician,
+      wikipediaSummary: 'Stored biography',
+    };
+    mockCountryProposals = [
+      {
+        id: 'proposal-1',
+        country_code: 'IT',
+        title: 'Dichiarazione di monumento nazionale di Piazza Caduti di Marcinelle e Cappella delle Vittime di Marcinelle a Manoppello con ulteriori disposizioni urgenti in materia di sicurezza pubblica e amministrazione straordinaria',
+        status: 'consultation',
+        policy_area: 'public_administration',
+      },
+    ];
+    mockPosition = {
+      ideology_label: 'Unclassified',
+      data_source: 'unclassified_party_profile',
+      key_positions: {},
+    };
+    mockWikipediaFallback.mockReturnValue({ data: null });
+
+    render(
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        initialEntries={['/actors/ventura']}
+      >
+        <Routes>
+          <Route path="/actors/:id" element={<ActorDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const title = await screen.findByText(/Dichiarazione di monumento nazionale di Piazza Caduti di Marcinelle/i);
+    expect(title).toHaveClass('block', 'break-words', 'leading-snug');
+    expect(title.closest('a')).toHaveClass('min-w-0', 'items-start');
   });
 });

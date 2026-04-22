@@ -20,7 +20,8 @@ It is built for people who want to look up how a country voted on something, wha
 - Relationship graphs showing party alliances and shared committee memberships.
 - Comparative dashboards on the **Data** page — proposals by country, status, and policy area; politicians by country and party family.
 - Political compass and policy-radar visualizations per politician.
-- Public read-only API via Supabase Row-Level Security — no auth required to read.
+- Public read-only HTTP API with one endpoint per SPA route ([docs/api.md](./docs/api.md)).
+- [MCP server](./docs/mcp.md) — every page and tool is callable from Claude Desktop, Cursor, and any other MCP client. 11 tools, 4 investigative prompt templates.
 
 ## Screenshots
 
@@ -125,6 +126,21 @@ npm run preview     # Serve the built bundle
 npm run test        # Unit tests (Vitest)
 npm run lint        # ESLint
 npm run typecheck   # tsc --noEmit
+```
+
+## API & MCP
+
+Every piece of data the website shows is also exposed through two machine-readable surfaces:
+
+- **HTTP API** — one endpoint per SPA route, plus lower-level canonical graph endpoints. Stable JSON envelope, ETag-cacheable, public. See [docs/api.md](./docs/api.md) and the spec at [openapi.yaml](./openapi.yaml).
+- **MCP server** — Model Context Protocol server so Claude Desktop, Cursor, and other LLM clients can query Poli-Track as a first-class tool. 11 tools + 4 prompts. See [docs/mcp.md](./docs/mcp.md). Source under [mcp-server/](./mcp-server/).
+
+Smoke-test the stdio binary locally:
+
+```bash
+cd mcp-server && npm install && npm run build
+POLI_TRACK_API_BASE=https://zygnkwyogazhwxfeatfc.supabase.co/functions/v1 \
+  npx @modelcontextprotocol/inspector node dist/stdio.js
 ```
 
 ## Contributing

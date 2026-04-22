@@ -10,10 +10,28 @@ const typeColors: Record<ChangeLogEntry['type'], string> = {
   forecast_update: 'bg-warning/10',
 };
 
+// UTC-pinned formatters so the rendered date/time doesn't drift with the
+// viewer's timezone or the host runtime locale. The previous version used
+// `toLocaleString('de-CH', ...)` with no timezone, which silently rendered
+// in local time and made tests timezone-flaky.
+const DATE_FMT = new Intl.DateTimeFormat('en', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  timeZone: 'UTC',
+});
+const TIME_FMT = new Intl.DateTimeFormat('en', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: 'UTC',
+});
+
 const ChangeLogItem = ({ entry }: { entry: ChangeLogEntry }) => {
   const time = new Date(entry.timestamp);
-  const timeStr = time.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
-  const dateStr = time.toLocaleDateString('de-CH');
+  const validTime = !Number.isNaN(time.getTime());
+  const dateStr = validTime ? DATE_FMT.format(time) : entry.timestamp;
+  const timeStr = validTime ? `${TIME_FMT.format(time)} UTC` : '';
 
   const linkPath = entry.subjectType === 'actor'
     ? `/actors/${entry.subjectId}`

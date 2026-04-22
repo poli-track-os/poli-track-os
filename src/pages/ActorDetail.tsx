@@ -16,8 +16,11 @@ import { PolicyRadarChart, PoliticalAxesBar, KeyPositionsList } from '@/componen
 import LinkedPersonTextList from '@/components/LinkedPersonTextList';
 import { SourceBadge, ProvenanceBar } from '@/components/SourceBadge';
 import { Link as RouterLink } from 'react-router-dom';
+import { buildCountryRoute, buildInternalPersonRoute, buildPartyRoute, isSamePersonName } from '@/lib/internal-links';
 import { getIdeologyDisplayLabel, hasRenderablePolicyAxes } from '@/lib/political-positioning';
-import { slugifyPartyName } from '@/lib/party-summary';
+import { cleanInfoboxValues } from '@/lib/wiki-text';
+import ActorLobbyPanel from '@/components/ActorLobbyPanel';
+import { resolveEpCommitteeAbbr, resolveEpCommitteeUrl } from '@/lib/ep-committees';
 
 const SECTOR_COLORS: Record<string, string> = {
   Technology: 'hsl(215, 30%, 45%)',
@@ -29,16 +32,35 @@ const SECTOR_COLORS: Record<string, string> = {
   Consulting: 'hsl(180, 40%, 40%)',
 };
 
+// `en-EU` is NOT a valid BCP-47 locale — most runtimes silently fall back
+// to the default locale, making currency rendering non-deterministic in CI
+// and across browsers. Use `en` and let `currency` and `currencyDisplay`
+// drive the formatting.
 function formatCurrency(value: number | null, currency = 'EUR') {
   if (value === null || value === undefined) return '—';
-  return new Intl.NumberFormat('en-EU', { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat('en', {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'code',
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
+// Use a UTC-pinned formatter from the shared date-display helper instead
+// of `toLocaleDateString()` with no locale or timezone. The previous
+// version rendered a date as the LOCAL day of the test/runtime machine,
+// which made tests timezone-flaky and made the UI inconsistent across
+// browsers.
 function formatDateLabel(value: string | undefined) {
   if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString();
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat('en', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(parsed);
 }
 
 function getDataSourceLabel(value: string | undefined) {
@@ -111,19 +133,20 @@ function findOfficeholderReference(
   officeholders: Array<{ office: string; personName: string; personUrl?: string }> | undefined,
   officePatterns: string[],
   fallbackName: string | undefined,
+  countryCode: string | undefined,
 ) {
   if (!officeholders?.length || !fallbackName) return undefined;
 
-  const normalizedName = fallbackName.trim().toLowerCase();
   const matchingOfficeholder =
-    officeholders.find((entry) => entry.personName.trim().toLowerCase() === normalizedName) ||
+    officeholders.find((entry) => isSamePersonName(entry.personName, fallbackName)) ||
     officeholders.find((entry) => officePatterns.some((pattern) => entry.office.toLowerCase().includes(pattern)));
 
   if (!matchingOfficeholder) return undefined;
 
   return {
-    href: matchingOfficeholder.personUrl,
+    href: buildInternalPersonRoute({ personName: matchingOfficeholder.personName, countryCode }),
     name: matchingOfficeholder.personName,
+    sourceUrl: matchingOfficeholder.personUrl,
   };
 }
 
@@ -173,7 +196,11 @@ const ActorDetail = () => {
     );
   }
 
-  const infobox = actor.wikipediaData?.infobox as Record<string, string> | undefined;
+  // The raw infobox is wiki source markup ("[[Foo|Bar]]", "{{birth date|...}}",
+  // sometimes a leaked "| field = " prefix). Clean it for display so the
+  // DETAILS panel shows readable strings instead of MediaWiki syntax.
+  const rawInfobox = actor.wikipediaData?.infobox as Record<string, string> | undefined;
+  const infobox = cleanInfoboxValues(rawInfobox);
   const wikipediaDescription =
     (typeof actor.wikipediaData?.description === 'string' ? actor.wikipediaData.description : null) ||
     wikipediaFallback?.description ||
@@ -181,12 +208,13 @@ const ActorDetail = () => {
   const wikipediaSummary = actor.wikipediaSummary || wikipediaFallback?.extract || actor.biography || null;
   const actorPhotoUrl = actor.photoUrl || actor.wikipediaImageUrl || wikipediaFallback?.imageUrl || undefined;
   const wikipediaUrl = actor.wikipediaUrl || wikipediaFallback?.canonicalUrl || undefined;
+  const countryRoute = buildCountryRoute(actor.countryId) || '/explore';
   const partyLabel = actor.partyName || actor.party;
   const resolvedPartyName = partyMetadata?.partyName || partyLabel;
-  const partyRoute =
-    actor.countryId && resolvedPartyName && resolvedPartyName !== 'Independent'
-      ? `/country/${actor.countryId}/party/${slugifyPartyName(resolvedPartyName)}`
-      : null;
+  const partyRoute = buildPartyRoute(
+    actor.countryId,
+    resolvedPartyName && resolvedPartyName !== 'Independent' ? resolvedPartyName : undefined,
+  ) || null;
   const attributionSources = extractAttributionSourceSummaries(actor.sourceAttribution);
   const attributedFieldCount = Object.keys(actor.sourceAttribution || {}).filter((key) => !key.startsWith('_')).length;
   const recordHost = getSourceHost(actor.sourceUrl);
@@ -195,15 +223,22 @@ const ActorDetail = () => {
     countryMetadata?.officeholders,
     ['head of state', 'president', 'king', 'queen', 'monarch'],
     countryMetadata?.headOfState,
+    actor.countryId,
   );
   const headOfGovernmentReference = findOfficeholderReference(
     countryMetadata?.officeholders,
     ['head of government', 'prime minister', 'chancellor', 'premier'],
     countryMetadata?.headOfGovernment,
+    actor.countryId,
   );
   const partyLeaderLinks = (partyMetadata?.leaders || []).map((leader) => ({
-    href: leader.url,
+    href: buildInternalPersonRoute({
+      actorId: isSamePersonName(leader.name, actor.name) ? actor.id : undefined,
+      personName: leader.name,
+      countryCode: actor.countryId,
+    }),
     name: leader.name,
+    sourceUrl: leader.url,
   }));
   const totalInvestmentValue = investments.reduce((s, i) => s + (i.estimated_value || 0), 0);
   const totalIncome = (finances?.annual_salary || 0) + (finances?.side_income || 0);
@@ -276,14 +311,14 @@ const ActorDetail = () => {
               )}
               <ProvenanceBar sources={[
                 ...(wikipediaUrl ? [{ label: 'Wikipedia', url: wikipediaUrl, type: 'official' as const }] : []),
-                ...(actor.enrichedAt ? [{ label: `Enriched ${new Date(actor.enrichedAt).toLocaleDateString()}`, type: 'fact' as const }] : []),
+                ...(actor.enrichedAt ? [{ label: `Enriched ${formatDateLabel(actor.enrichedAt)}`, type: 'fact' as const }] : []),
               ]} />
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-4 sm:gap-8">
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-4 sm:gap-8">
+          <div className="min-w-0">
             {/* Wikipedia biography */}
             {wikipediaSummary && (
               <section className="mb-8">
@@ -292,7 +327,7 @@ const ActorDetail = () => {
                   BIOGRAPHY
                 </h2>
                 <div className="brutalist-border p-4 bg-secondary/30">
-                  <p className="text-sm leading-relaxed">{wikipediaSummary}</p>
+                  <p className="text-sm leading-relaxed break-words">{wikipediaSummary}</p>
                   <ProvenanceBar sources={[
                     { label: 'Wikipedia', url: wikipediaUrl, type: 'official' },
                   ]} />
@@ -305,88 +340,92 @@ const ActorDetail = () => {
                 <Briefcase className="w-3 h-3" />
                 PROFILE DOSSIER
               </h2>
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                <div className="brutalist-border p-4 bg-card">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 min-w-0">
+                <div className="brutalist-border p-4 bg-card min-w-0">
                   <p className="text-[10px] font-mono font-bold text-muted-foreground mb-3">OFFICE RECORD</p>
-                  <div className="space-y-2 font-mono text-xs">
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Role</span>
-                      <span className="font-bold text-right">{actor.role}</span>
+                  <dl className="space-y-3 font-mono text-xs">
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Role</dt>
+                      <dd className="font-bold mt-0.5 break-words">{actor.role}</dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Jurisdiction</span>
-                      <span className="font-bold text-right">{actor.jurisdiction.toUpperCase()}</span>
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Jurisdiction</dt>
+                      <dd className="font-bold mt-0.5">{actor.jurisdiction.toUpperCase()}</dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Country</span>
-                      <RouterLink to={`/country/${actor.countryId}`} className="font-bold text-right hover:text-accent">
-                        {countryMetadata?.flagEmoji ? `${countryMetadata.flagEmoji} ` : ''}
-                        {actor.canton}
-                      </RouterLink>
-                    </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Party</span>
-                      {partyRoute ? (
-                        <RouterLink to={partyRoute} className="font-bold text-right hover:text-accent">
-                          {partyLabel}
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Country</dt>
+                      <dd className="font-bold mt-0.5 break-words">
+                        <RouterLink to={countryRoute} className="hover:text-accent">
+                          {countryMetadata?.flagEmoji ? `${countryMetadata.flagEmoji} ` : ''}
+                          {actor.canton}
                         </RouterLink>
-                      ) : (
-                        <span className="font-bold text-right">{partyLabel || 'Unresolved'}</span>
-                      )}
+                      </dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">In office since</span>
-                      <span className="font-bold text-right">{formatDateLabel(actor.inOfficeSince)}</span>
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Party</dt>
+                      <dd className="font-bold mt-0.5 break-words">
+                        {partyRoute ? (
+                          <RouterLink to={partyRoute} className="hover:text-accent">
+                            {partyLabel}
+                          </RouterLink>
+                        ) : (
+                          partyLabel || 'Unresolved'
+                        )}
+                      </dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Updated</span>
-                      <span className="font-bold text-right">{formatDateLabel(actor.updatedAt)}</span>
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">In office since</dt>
+                      <dd className="font-bold mt-0.5">{formatDateLabel(actor.inOfficeSince)}</dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Ingestion source</span>
-                      <span className="font-bold text-right">{getDataSourceLabel(actor.dataSource)}</span>
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Updated</dt>
+                      <dd className="font-bold mt-0.5">{formatDateLabel(actor.updatedAt)}</dd>
                     </div>
-                  </div>
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Ingestion source</dt>
+                      <dd className="font-bold mt-0.5 break-words">{getDataSourceLabel(actor.dataSource)}</dd>
+                    </div>
+                  </dl>
                 </div>
 
-                <div className="brutalist-border p-4 bg-card">
+                <div className="brutalist-border p-4 bg-card min-w-0">
                   <p className="text-[10px] font-mono font-bold text-muted-foreground mb-3">COUNTRY CONTEXT</p>
-                  <div className="space-y-2 font-mono text-xs">
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Capital</span>
-                      <span className="font-bold text-right">{countryMetadata?.capital || '—'}</span>
+                  <dl className="space-y-3 font-mono text-xs">
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Capital</dt>
+                      <dd className="font-bold mt-0.5 break-words">{countryMetadata?.capital || '—'}</dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Head of state</span>
-                      <span className="font-bold text-right">
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Head of state</dt>
+                      <dd className="font-bold mt-0.5 break-words">
                         <LinkedPersonTextList
                           people={headOfStateReference ? [headOfStateReference] : []}
                           emptyLabel={countryMetadata?.headOfState || '—'}
                           linkAriaLabelPrefix="Head of state"
                         />
-                      </span>
+                      </dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Head of government</span>
-                      <span className="font-bold text-right">
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Head of government</dt>
+                      <dd className="font-bold mt-0.5 break-words">
                         <LinkedPersonTextList
                           people={headOfGovernmentReference ? [headOfGovernmentReference] : []}
                           emptyLabel={countryMetadata?.headOfGovernment || '—'}
                           linkAriaLabelPrefix="Head of government"
                         />
-                      </span>
+                      </dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Tracked officeholders</span>
-                      <span className="font-bold text-right">{countryOfficeholderCount || '—'}</span>
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Tracked officeholders</dt>
+                      <dd className="font-bold mt-0.5">{countryOfficeholderCount || '—'}</dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Tracked proposals</span>
-                      <span className="font-bold text-right">{countryProposals.length}</span>
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Tracked proposals</dt>
+                      <dd className="font-bold mt-0.5">{countryProposals.length}</dd>
                     </div>
-                  </div>
+                  </dl>
                   <div className="mt-3 pt-3 border-t border-border space-y-2">
-                    <RouterLink to={`/country/${actor.countryId}`} className="text-xs font-mono text-accent hover:underline block">
+                    <RouterLink to={countryRoute} className="text-xs font-mono text-accent hover:underline block">
                       Open country page →
                     </RouterLink>
                     {countryMetadata?.wikipediaUrl && (
@@ -397,38 +436,40 @@ const ActorDetail = () => {
                   </div>
                 </div>
 
-                <div className="brutalist-border p-4 bg-card">
+                <div className="brutalist-border p-4 bg-card min-w-0">
                   <p className="text-[10px] font-mono font-bold text-muted-foreground mb-3">PARTY CONTEXT</p>
-                  <div className="space-y-2 font-mono text-xs">
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Resolved party</span>
-                      <span className="font-bold text-right">{resolvedPartyName || 'Unresolved'}</span>
+                  <dl className="space-y-3 font-mono text-xs">
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Resolved party</dt>
+                      <dd className="font-bold mt-0.5 break-words">{resolvedPartyName || 'Unresolved'}</dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Political position</span>
-                      <span className="font-bold text-right">{partyMetadata?.politicalPosition || '—'}</span>
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Political position</dt>
+                      <dd className="font-bold mt-0.5 break-words">{partyMetadata?.politicalPosition || '—'}</dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Official website</span>
-                      {partyMetadata?.officialWebsite ? (
-                        <a href={partyMetadata.officialWebsite} target="_blank" rel="noopener noreferrer" className="font-bold text-right hover:text-accent">
-                          {getSourceHost(partyMetadata.officialWebsite) || partyMetadata.officialWebsite}
-                        </a>
-                      ) : (
-                        <span className="font-bold text-right">—</span>
-                      )}
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Official website</dt>
+                      <dd className="font-bold mt-0.5 break-all">
+                        {partyMetadata?.officialWebsite ? (
+                          <a href={partyMetadata.officialWebsite} target="_blank" rel="noopener noreferrer" className="hover:text-accent">
+                            {getSourceHost(partyMetadata.officialWebsite) || partyMetadata.officialWebsite}
+                          </a>
+                        ) : (
+                          '—'
+                        )}
+                      </dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Ideologies</span>
-                      <span className="font-bold text-right">{partyMetadata?.ideologies?.slice(0, 3).join(', ') || '—'}</span>
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Ideologies</dt>
+                      <dd className="font-bold mt-0.5 break-words">{partyMetadata?.ideologies?.slice(0, 3).join(', ') || '—'}</dd>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-muted-foreground">Leaders</span>
-                      <span className="font-bold text-right">
+                    <div>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Leaders</dt>
+                      <dd className="font-bold mt-0.5 break-words">
                         <LinkedPersonTextList people={partyLeaderLinks} emptyLabel="—" linkAriaLabelPrefix="Party leader" />
-                      </span>
+                      </dd>
                     </div>
-                  </div>
+                  </dl>
                   {partyMetadata?.summary ? (
                     <p className="text-xs text-muted-foreground mt-3 leading-relaxed">{partyMetadata.summary}</p>
                   ) : (
@@ -469,15 +510,19 @@ const ActorDetail = () => {
                       <RouterLink
                         key={proposal.id}
                         to={`/proposals/${proposal.id}`}
-                        className="flex items-center gap-2 text-xs font-mono hover:bg-muted/50 px-2 py-1.5 rounded transition-colors"
+                        className="flex items-start gap-2 min-w-0 text-xs font-mono hover:bg-muted/50 px-2 py-1.5 rounded transition-colors"
                       >
-                        <span className={`px-1 py-0.5 rounded text-[9px] ${statusColors[proposal.status] || 'bg-muted'}`}>
+                        <span className={`shrink-0 px-1 py-0.5 rounded text-[9px] ${statusColors[proposal.status] || 'bg-muted'}`}>
                           {statusLabels[proposal.status] || proposal.status.toUpperCase()}
                         </span>
-                        <span className="truncate flex-1">{proposal.title}</span>
-                        {proposal.policy_area && (
-                          <span className="text-[9px] text-muted-foreground">{proposal.policy_area.replace(/_/g, ' ')}</span>
-                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className="block break-words leading-snug">{proposal.title}</span>
+                          {proposal.policy_area && (
+                            <span className="mt-1 block text-[9px] text-muted-foreground break-words">
+                              {proposal.policy_area.replace(/_/g, ' ')}
+                            </span>
+                          )}
+                        </span>
                       </RouterLink>
                     ))}
                   </div>
@@ -713,8 +758,8 @@ const ActorDetail = () => {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px] gap-4">
                   <div className="brutalist-border bg-card overflow-hidden">
-                    <div className="max-h-[300px] overflow-y-auto">
-                      <table className="w-full text-xs font-mono">
+                    <div className="max-h-[300px] overflow-auto">
+                      <table className="w-full min-w-[420px] text-xs font-mono">
                         <thead className="sticky top-0 bg-card">
                           <tr className="border-b border-border">
                             <th className="text-left p-2 font-bold">COMPANY</th>
@@ -725,9 +770,11 @@ const ActorDetail = () => {
                         <tbody>
                           {investments.map(inv => (
                             <tr key={inv.id} className="border-b border-border/50 hover:bg-muted/50">
-                              <td className="p-2 font-medium flex items-center gap-1.5">
+                              <td className="p-2 font-medium">
+                                <div className="flex items-start gap-1.5">
                                 <Building2 className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                                {inv.company_name}
+                                  <span className="break-words">{inv.company_name}</span>
+                                </div>
                               </td>
                               <td className="p-2">
                                 <span className="px-1.5 py-0.5 rounded text-[10px] bg-muted">{inv.sector || '—'}</span>
@@ -805,7 +852,7 @@ const ActorDetail = () => {
             )}
           </div>
 
-          <aside className="space-y-6">
+          <aside className="space-y-6 min-w-0">
             {/* Income summary card */}
             {finances && totalIncome > 0 && (
               <div className="brutalist-border p-4 bg-accent/5">
@@ -844,39 +891,106 @@ const ActorDetail = () => {
             {infobox && Object.keys(infobox).length > 0 && (
               <div className="brutalist-border p-4">
                 <h3 className="font-mono text-xs font-bold mb-2">DETAILS</h3>
-                <div className="space-y-1.5">
+                <dl className="space-y-2.5 font-mono text-xs">
                   {Object.entries(infobox).map(([key, val]) => (
-                    <div key={key} className="flex justify-between gap-2 font-mono text-xs">
-                      <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</span>
-                      <span className="font-medium text-right max-w-[160px] truncate" title={val}>{val}</span>
+                    <div key={key}>
+                      <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">{key.replace(/_/g, ' ')}</dt>
+                      <dd className="font-medium mt-0.5 break-words">{val}</dd>
                     </div>
                   ))}
+                </dl>
+                <div className="mt-3">
+                  <ProvenanceBar sources={[{ label: 'Wikipedia infobox', url: wikipediaUrl, type: 'official' }]} />
                 </div>
-                <ProvenanceBar sources={[{ label: 'Wikipedia infobox', url: wikipediaUrl, type: 'official' }]} />
               </div>
             )}
+
+            <ActorLobbyPanel politicianId={actor.id} />
 
             {actor.committees.length > 0 && (
               <div className="brutalist-border p-4">
                 <h3 className="font-mono text-xs font-bold mb-2">COMMITTEES</h3>
                 <div className="space-y-1">
-                  {actor.committees.map((c) => (
-                    <div key={c} className="font-mono text-xs bg-secondary px-2 py-1.5 brutalist-border">{c}</div>
-                  ))}
+                  {actor.committees.map((c) => {
+                    const url = resolveEpCommitteeUrl(c);
+                    const abbr = resolveEpCommitteeAbbr(c);
+                    const inner = (
+                      <>
+                        <span className="break-words">{c}</span>
+                        {abbr && <span className="font-bold text-muted-foreground ml-1 text-[10px]">({abbr})</span>}
+                      </>
+                    );
+                    return url ? (
+                      <a
+                        key={c}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block font-mono text-xs bg-secondary px-2 py-1.5 brutalist-border hover:bg-accent/10 hover:text-accent transition-colors"
+                      >
+                        {inner}
+                      </a>
+                    ) : (
+                      <div
+                        key={c}
+                        className="block font-mono text-xs bg-secondary px-2 py-1.5 brutalist-border"
+                      >
+                        {inner}
+                      </div>
+                    );
+                  })}
                 </div>
-                <ProvenanceBar sources={[{ label: 'EP committee assignments', url: 'https://www.europarl.europa.eu/committees/en/home', type: 'official' }]} />
+                <div className="mt-3">
+                  <ProvenanceBar sources={[{ label: 'EP committee assignments', url: 'https://www.europarl.europa.eu/committees/en/home', type: 'official' }]} />
+                </div>
               </div>
             )}
 
-            {actor.twitterHandle && (
+            {(actor.twitterHandle || actor.wikipediaUrl || actor.sourceUrl) && (
               <div className="brutalist-border p-4">
-                <h3 className="font-mono text-xs font-bold mb-2">SOCIAL MEDIA</h3>
-                <a href={`https://x.com/${actor.twitterHandle?.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="font-mono text-sm text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1">
-                  <ExternalLink className="w-3 h-3" /> {actor.twitterHandle}
-                </a>
-                <ProvenanceBar sources={[
-                  { label: 'X / Twitter', url: `https://x.com/${actor.twitterHandle?.replace('@', '')}`, type: 'official' },
-                ]} />
+                <h3 className="font-mono text-xs font-bold mb-3">CONTACT & LINKS</h3>
+                <div className="space-y-2 font-mono text-xs">
+                  {actor.sourceUrl && (
+                    <a
+                      href={actor.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-accent hover:underline break-all"
+                    >
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                      <span className="break-all">{getSourceHost(actor.sourceUrl) || 'Official record'}</span>
+                    </a>
+                  )}
+                  {actor.wikipediaUrl && (
+                    <a
+                      href={actor.wikipediaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-accent hover:underline break-all"
+                    >
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                      <span className="break-all">Wikipedia</span>
+                    </a>
+                  )}
+                  {actor.twitterHandle && (
+                    <a
+                      href={`https://x.com/${actor.twitterHandle.replace(/^@/, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sky-600 dark:text-sky-400 hover:underline"
+                    >
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                      <span>@{actor.twitterHandle.replace(/^@/, '')}</span>
+                    </a>
+                  )}
+                </div>
+                <div className="mt-3">
+                  <ProvenanceBar sources={[
+                    ...(actor.sourceUrl ? [{ label: getSourceHost(actor.sourceUrl) || 'Official', url: actor.sourceUrl, type: 'official' as const }] : []),
+                    ...(actor.wikipediaUrl ? [{ label: 'Wikipedia', url: actor.wikipediaUrl, type: 'official' as const }] : []),
+                    ...(actor.twitterHandle ? [{ label: 'X / Twitter', url: `https://x.com/${actor.twitterHandle.replace(/^@/, '')}`, type: 'official' as const }] : []),
+                  ]} />
+                </div>
               </div>
             )}
 
@@ -973,10 +1087,10 @@ const ActorDetail = () => {
 
             <div className="font-mono text-xs text-muted-foreground space-y-1">
               <div>rev: {actor.revisionId}</div>
-              <div>updated: {new Date(actor.updatedAt).toLocaleDateString()}</div>
+              <div>updated: {formatDateLabel(actor.updatedAt)}</div>
               {actor.birthYear && <div>born: {actor.birthYear}</div>}
-              {actor.inOfficeSince && <div>in office since: {new Date(actor.inOfficeSince).toLocaleDateString()}</div>}
-              {actor.enrichedAt && <div>enriched: {new Date(actor.enrichedAt).toLocaleDateString()}</div>}
+              {actor.inOfficeSince && <div>in office since: {formatDateLabel(actor.inOfficeSince)}</div>}
+              {actor.enrichedAt && <div>enriched: {formatDateLabel(actor.enrichedAt)}</div>}
             </div>
           </aside>
         </div>

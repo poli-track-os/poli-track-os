@@ -1,4 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  buildEnrichmentUpdate,
+  candidateMatchesPolitician,
+  extractWikipediaTitleFromUrl,
+  parseInfobox,
+  type EnrichmentSourceData,
+  type ExistingPoliticianForEnrichment,
+} from "./parsers.ts";
 
 function serializeError(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -172,181 +180,23 @@ async function getWikiInfobox(title: string): Promise<Record<string, string> | n
   if (!pages) return null;
   const page = Object.values(pages)[0] as any;
   const content = page?.revisions?.[0]?.slots?.main?.["*"] || "";
-
-  const infobox: Record<string, string> = {};
-  const fields = [
-    "birth_date", "birth_place", "alma_mater", "spouse", "children",
-    "occupation", "party", "office", "term_start", "term_end",
-    "predecessor", "successor", "nationality", "religion",
-    "twitter", "twitter_handle", "website", "committees",
-  ];
-
-  for (const field of fields) {
-    const regex = new RegExp(`\\|\\s*${field}\\s*=\\s*(.+?)(?:\\n|\\|)`, "i");
-    const match = content.match(regex);
-    if (match) {
-      let val = match[1].trim();
-      val = val.replace(/\[\[([^\]|]*?\|)?([^\]]*?)\]\]/g, "$2");
-      val = val.replace(/\{\{[^}]*\}\}/g, "").trim();
-      if (val) infobox[field] = val;
-    }
-  }
-
-  return Object.keys(infobox).length > 0 ? infobox : null;
+  return parseInfobox(content);
 }
 
-function parseTwitterHandle(raw: string | undefined): string | null {
-  if (!raw) return null;
-  const match = raw.match(/@?([A-Za-z0-9_]{2,15})/);
-  if (!match) return null;
-  const handle = match[1];
-  if (handle.toLowerCase() === "twitter" || handle.toLowerCase() === "x") return null;
-  return handle;
-}
-
-function parseInOfficeSince(raw: string | undefined): string | null {
-  if (!raw) return null;
-  const ymd = raw.match(/(\d{4})[-/\s|](\d{1,2})[-/\s|](\d{1,2})/);
-  if (ymd) {
-    const [, y, m, d] = ymd;
-    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-  }
-  const yearOnly = raw.match(/\b(\d{4})\b/);
-  if (yearOnly) return `${yearOnly[1]}-01-01`;
-  return null;
-}
-
-function parseCommittees(raw: string | undefined): string[] {
-  if (!raw) return [];
-  return raw
-    .split(/[,;*\n]/)
-    .map((s) => s.trim())
-    .filter((s) => s.length >= 3 && s.length <= 80);
-}
-
-function parsePartyName(raw: string | undefined): string | null {
-  if (!raw) return null;
-
-  const cleaned = raw
-    .replace(/<br\s*\/?>/gi, ", ")
-    .replace(/{{[^{}]*}}/g, " ")
-    .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, "$2")
-    .replace(/\[\[([^\]]+)\]\]/g, "$1")
-    .replace(/\[\[/g, "")
-    .replace(/\]\]/g, "")
-    .replace(/''+/g, "")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (!cleaned) return null;
-
-  const primary = cleaned
-    .replace(/\s*\([^)]*\)\s*$/g, "")
-    .split("|")[0]
-    .split(/\s*,\s*|\s*;\s*|\s+•\s+|\s+·\s+/)
-    .map((part) => part.trim())
-    .find((part) => part.length >= 2);
-
-  return primary || null;
-}
-
-interface EnrichTarget {
+interface EnrichTarget extends ExistingPoliticianForEnrichment {
   id: string;
   name: string;
   country_name: string;
   country_code: string;
-  party_name?: string;
-  photo_url?: string | null;
-  biography?: string | null;
-  birth_year?: number | null;
-  in_office_since?: string | null;
-  twitter_handle?: string | null;
-  committees?: string[] | null;
-  external_id?: string | null;
   source_url?: string | null;
-  wikipedia_url?: string | null;
-  wikipedia_summary?: string | null;
-  wikipedia_image_url?: string | null;
-  wikipedia_data?: Record<string, unknown> | null;
 }
 
-function extractWikipediaTitleFromUrl(rawUrl: string | null | undefined): string | null {
-  if (!rawUrl || !rawUrl.includes("wikipedia.org/wiki/")) return null;
-
-  try {
-    const parsed = new URL(rawUrl);
-    const marker = "/wiki/";
-    const index = parsed.pathname.indexOf(marker);
-    if (index === -1) return null;
-    const encodedTitle = parsed.pathname.slice(index + marker.length);
-    if (!encodedTitle) return null;
-    return decodeURIComponent(encodedTitle);
-  } catch {
-    return null;
-  }
-}
-
-// P2.2: Disambiguation guardrail. Before accepting a candidate page,
-// check three things:
-//   1. The candidate title contains at least one token from the
-//      politician's name (rules out list pages, category pages, and
-//      unrelated articles that just happen to match category filters).
-//   2. Categories mark this as a politician (not "Presidency of X",
-//      "Family of X", "Political positions of X", etc.).
-//   3. Categories tie the person to the right country or an EU-level role.
-function candidateMatchesPolitician(
-  candidateTitle: string,
-  categories: string[],
-  politician: EnrichTarget,
-): boolean {
-  const lowerCats = categories.map((c) => c.toLowerCase());
-  const country = politician.country_name.toLowerCase();
-
-  // Reject disambiguation / list pages outright.
-  if (/\bdisambig/i.test(candidateTitle)) return false;
-  if (/^list of|^lists of/i.test(candidateTitle)) return false;
-  if (lowerCats.some((c) => c.includes("disambiguation pages"))) return false;
-
-  // Title must share at least one non-trivial token with the politician.
-  // We fold to ASCII and require a token of length ≥4 to appear in the title.
-  const fold = (s: string) =>
-    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  const titleFolded = fold(candidateTitle);
-  const nameTokens = fold(politician.name)
-    .split(/\s+/)
-    .filter((t) => t.length >= 4);
-  if (nameTokens.length > 0 && !nameTokens.some((t) => titleFolded.includes(t))) {
-    return false;
-  }
-
-  // Must look like a politician.
-  const politicianMarker = lowerCats.some(
-    (c) =>
-      c.includes("politician") ||
-      c.includes("members of") ||
-      c.includes("mps") ||
-      c.includes("ministers") ||
-      c.includes("senators") ||
-      c.includes("deputies") ||
-      c.includes("meps"),
-  );
-  if (!politicianMarker) return false;
-
-  // Must look like the right country (or an EU-level role).
-  const countryMatch = lowerCats.some(
-    (c) =>
-      c.includes(country) ||
-      c.includes("european parliament") ||
-      c.includes("european union"),
-  );
-  return countryMatch;
-}
+type EnrichResult = "enriched" | "no_match" | "failed";
 
 async function enrichPolitician(
   supabase: any,
   politician: EnrichTarget,
-): Promise<boolean> {
+): Promise<EnrichResult> {
   let chosen: { title: string; meta: PageMetadata } | null = null;
 
   const linkedTitle = extractWikipediaTitleFromUrl(politician.wikipedia_url || politician.source_url);
@@ -362,14 +212,14 @@ async function enrichPolitician(
     const candidates = await searchWikipediaCandidates(query);
     if (candidates.length === 0) {
       console.log(`No candidates for: ${politician.name}`);
-      return false;
+      return "no_match";
     }
 
     // Try candidates in order; first one that passes the guardrail wins.
     for (const c of candidates) {
       const meta = await getPageMetadata(c.title);
       if (!meta.summary) continue;
-      if (candidateMatchesPolitician(c.title, meta.categories, politician)) {
+      if (candidateMatchesPolitician(c.title, meta.categories, politician.name, politician.country_name)) {
         chosen = { title: c.title, meta };
         break;
       }
@@ -378,7 +228,7 @@ async function enrichPolitician(
 
   if (!chosen) {
     console.log(`No candidate passed disambiguation for: ${politician.name}`);
-    return false;
+    return "no_match";
   }
 
   const { title: wikiTitle, meta } = chosen;
@@ -389,62 +239,20 @@ async function enrichPolitician(
     getWikiInfobox(wikiTitle),
   ]);
 
-  const wikiUrl = summary.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}`;
-  const wikiImage = summary.originalimage?.source || summary.thumbnail?.source || null;
-
-  const updateData: Record<string, any> = {
-    wikipedia_url: wikiUrl,
-    wikipedia_summary: summary.extract || politician.wikipedia_summary || null,
-    biography: fullExtract || summary.extract || politician.biography || null,
-    wikipedia_image_url: wikiImage || politician.wikipedia_image_url || null,
-    wikipedia_data: {
-      ...(typeof politician.wikipedia_data === "object" && politician.wikipedia_data ? politician.wikipedia_data : {}),
-      title: wikiTitle,
-      description: summary.description || null,
-      infobox: infobox || null,
-      coordinates: summary.coordinates || null,
-      categories: meta.categories,
-      wikidata_id: meta.wikidataId,
-      last_fetched: new Date().toISOString(),
-    },
-    enriched_at: new Date().toISOString(),
+  const sourceData: EnrichmentSourceData = {
+    wikiTitle,
+    wikiUrl: summary.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}`,
+    wikiImage: summary.originalimage?.source || summary.thumbnail?.source || null,
+    summaryExtract: summary.extract || null,
+    summaryDescription: summary.description || null,
+    fullExtract,
+    infobox,
+    categories: meta.categories,
+    wikidataId: meta.wikidataId,
+    coordinates: summary.coordinates || null,
   };
 
-  // P1.5: store Wikidata ID as external_id for stable cross-source joins.
-  // Don't clobber an existing external_id (e.g. an MEP numeric id set by
-  // scrape-eu-parliament).
-  if (meta.wikidataId && !politician.external_id) {
-    updateData.external_id = meta.wikidataId;
-  }
-
-  if (wikiImage && !politician.photo_url) {
-    updateData.photo_url = wikiImage;
-  }
-
-  if (!politician.birth_year && infobox?.birth_date) {
-    const yearMatch = infobox.birth_date.match(/(\d{4})/);
-    if (yearMatch) updateData.birth_year = parseInt(yearMatch[1]);
-  }
-
-  if (!politician.twitter_handle) {
-    const handle = parseTwitterHandle(infobox?.twitter_handle || infobox?.twitter);
-    if (handle) updateData.twitter_handle = handle;
-  }
-
-  if (!politician.in_office_since && infobox?.term_start) {
-    const parsed = parseInOfficeSince(infobox.term_start);
-    if (parsed) updateData.in_office_since = parsed;
-  }
-
-  if (!politician.party_name && infobox?.party) {
-    const partyName = parsePartyName(infobox.party);
-    if (partyName) updateData.party_name = partyName;
-  }
-
-  if ((!politician.committees || politician.committees.length === 0) && infobox?.committees) {
-    const committees = parseCommittees(infobox.committees);
-    if (committees.length > 0) updateData.committees = committees;
-  }
+  const updateData = buildEnrichmentUpdate(politician, sourceData);
 
   const { error } = await supabase
     .from("politicians")
@@ -453,11 +261,11 @@ async function enrichPolitician(
 
   if (error) {
     console.error(`Failed to update ${politician.name}:`, error.message);
-    return false;
+    return "failed";
   }
 
   console.log(`Enriched: ${politician.name} → ${wikiTitle} (${meta.wikidataId ?? "no wikidata"})`);
-  return true;
+  return "enriched";
 }
 
 Deno.serve(async (req) => {
@@ -518,11 +326,15 @@ Deno.serve(async (req) => {
         .single();
       politicians = data ? [data as EnrichTarget] : [];
     } else {
+      // Automatic backlog mode should stick to higher-signal rows. Blind
+      // search across the official-roster backlog creates repeated 0/N
+      // runs and turns no-match cases into scrape_run failures.
       const { data } = await supabase
         .from("politicians")
         .select(selectCols)
         .is("enriched_at", null)
-        .order("role", { ascending: true })
+        .neq("data_source", "official_record")
+        .order("created_at", { ascending: true })
         .limit(batchSize);
       politicians = (data || []) as EnrichTarget[];
     }
@@ -546,6 +358,7 @@ Deno.serve(async (req) => {
 
     let enriched = 0;
     let failed = 0;
+    let noMatch = 0;
     let processed = 0;
     // Wall-clock cutoff so we never hit the edge function WORKER_LIMIT.
     const deadline = Date.now() + 90_000;
@@ -553,8 +366,9 @@ Deno.serve(async (req) => {
     for (const pol of politicians) {
       if (Date.now() > deadline) break;
       processed++;
-      const success = await enrichPolitician(supabase, pol);
-      if (success) enriched++;
+      const result = await enrichPolitician(supabase, pol);
+      if (result === "enriched") enriched++;
+      else if (result === "no_match") noMatch++;
       else failed++;
     }
 
@@ -568,7 +382,9 @@ Deno.serve(async (req) => {
         status: failed > 0 && enriched === 0 ? "failed" : "completed",
         records_fetched: politicians.length,
         records_updated: enriched,
-        error_message: failed > 0 ? `${failed} enrichment failures` : null,
+        error_message: failed > 0
+          ? `${failed} enrichment errors${noMatch > 0 ? `; ${noMatch} no-match skips` : ""}`
+          : (noMatch > 0 ? `${noMatch} no-match skips` : null),
         completed_at: new Date().toISOString(),
       }).eq("id", runId);
     }
@@ -583,6 +399,7 @@ Deno.serve(async (req) => {
         success: true,
         enriched,
         failed,
+        no_match: noMatch,
         remaining: count || 0,
         message: `Enriched ${enriched}/${politicians.length} politicians. ${count || 0} remaining.`,
       }),

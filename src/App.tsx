@@ -15,6 +15,9 @@ const PartyDetail = lazy(() => import("./pages/PartyDetail.tsx"));
 const Relationships = lazy(() => import("./pages/Relationships.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));
 const Data = lazy(() => import("./pages/Data.tsx"));
+const Budgets = lazy(() => import("./pages/Budgets.tsx"));
+const Lobby = lazy(() => import("./pages/Lobby.tsx"));
+const Timeline = lazy(() => import("./pages/Timeline.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
@@ -44,6 +47,9 @@ const App = () => {
               <Route path="/actors/:id" element={<ActorDetail />} />
               <Route path="/relationships" element={<Relationships />} />
               <Route path="/data" element={<Data />} />
+              <Route path="/budgets" element={<Budgets />} />
+              <Route path="/lobby" element={<Lobby />} />
+              <Route path="/timeline" element={<Timeline />} />
               <Route path="/about" element={<About />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

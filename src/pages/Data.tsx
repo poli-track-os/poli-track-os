@@ -23,7 +23,12 @@ const COLORS = [
   'hsl(200, 50%, 50%)',
 ];
 
-// EU country reference data (2024 estimates)
+// EU country reference data — fallback constant kept for charts that run
+// inside `useDataStats` (a TanStack Query that can't easily depend on
+// another hook). The live, DB-backed version is exposed via
+// `useEuReferenceData()` from src/hooks/use-government-expenditure.ts and
+// is preferred for any new charts. The mechanical migration of every
+// reference here to the live hook is queued in ROADMAP.md §10 Phase 1f.
 const EU_COUNTRY_DATA: Record<string, { population: number; gdp: number; area: number }> = {
   DE: { population: 84_482_000, gdp: 4_456, area: 357_022 },
   FR: { population: 68_170_000, gdp: 3_049, area: 551_695 },
@@ -463,27 +468,41 @@ function useDataStats() {
           };
         });
 
-      // Representation index: normalized score combining per-capita and per-GDP
-      const maxPerCap = Math.max(...perCapita.map(c => c.perMillion));
-      const maxPerGdp = Math.max(...perGdp.map(c => c.perBillion));
-      const representationIndex = byCountry
-        .filter(c => EU_COUNTRY_DATA[c.code])
-        .map(c => {
-          const ref = EU_COUNTRY_DATA[c.code];
-          const pCap = (c.count / ref.population) * 1_000_000;
-          const pGdp = c.count / ref.gdp;
-          const pArea = (c.count / ref.area) * 10_000;
-          return {
-            name: c.code,
-            fullName: c.name,
-            perCapita: parseFloat(((pCap / maxPerCap) * 100).toFixed(0)),
-            perGdp: parseFloat(((pGdp / maxPerGdp) * 100).toFixed(0)),
-            density: parseFloat(Math.min(100, pArea * 5).toFixed(0)),
-            absolute: parseFloat(((c.count / byCountry[0].count) * 100).toFixed(0)),
-          };
-        })
-        .sort((a, b) => (b.perCapita + b.perGdp) - (a.perCapita + a.perGdp))
-        .slice(0, 8);
+      // Representation index: normalized score combining per-capita and per-GDP.
+      //
+      // Guard against an empty intersection between byCountry and the
+      // hard-coded EU_COUNTRY_DATA reference table (e.g. a non-EU
+      // deployment): `Math.max(...[])` returns -Infinity, which would
+      // make every per-capita ratio NaN once divided through, and
+      // `toFixed(0)` would render "NaN". Skip the section entirely when
+      // there is no overlap.
+      const safeMax = (arr: number[]): number => {
+        const finite = arr.filter((n) => Number.isFinite(n) && n > 0);
+        return finite.length === 0 ? 0 : Math.max(...finite);
+      };
+      const maxPerCap = safeMax(perCapita.map((c) => c.perMillion));
+      const maxPerGdp = safeMax(perGdp.map((c) => c.perBillion));
+      const topAbsolute = byCountry[0]?.count ?? 0;
+      const representationIndex = (maxPerCap > 0 && maxPerGdp > 0 && topAbsolute > 0)
+        ? byCountry
+            .filter((c) => EU_COUNTRY_DATA[c.code])
+            .map((c) => {
+              const ref = EU_COUNTRY_DATA[c.code];
+              const pCap = (c.count / ref.population) * 1_000_000;
+              const pGdp = c.count / ref.gdp;
+              const pArea = (c.count / ref.area) * 10_000;
+              return {
+                name: c.code,
+                fullName: c.name,
+                perCapita: parseFloat(((pCap / maxPerCap) * 100).toFixed(0)),
+                perGdp: parseFloat(((pGdp / maxPerGdp) * 100).toFixed(0)),
+                density: parseFloat(Math.min(100, pArea * 5).toFixed(0)),
+                absolute: parseFloat(((c.count / topAbsolute) * 100).toFixed(0)),
+              };
+            })
+            .sort((a, b) => (b.perCapita + b.perGdp) - (a.perCapita + a.perGdp))
+            .slice(0, 8)
+        : [];
 
       // GDP per politician (how much economic output per tracked politician)
       const gdpPerPol = byCountry
@@ -610,18 +629,23 @@ function useDataStats() {
         { domain: 'Environment', value: averagePriority('environment_priority') },
       ] : [];
 
-      // EU integration distribution
-      const euBuckets = [
-        { range: 'Strong Eurosceptic', min: -10, max: -5, count: 0 },
-        { range: 'Eurosceptic', min: -5, max: -1, count: 0 },
-        { range: 'Neutral', min: -1, max: 1, count: 0 },
-        { range: 'Pro-EU', min: 1, max: 5, count: 0 },
-        { range: 'Strong Pro-EU', min: 5, max: 10.1, count: 0 },
+      // EU integration distribution. Use explicit predicate functions
+      // instead of [min, max) half-open intervals so the boundary cases
+      // match the label intent: a politician with eu_integration_score
+      // = -5 is "Strong Eurosceptic" (≤ -5), not "Eurosceptic". The
+      // previous version had v=-5 falling into "Eurosceptic" because
+      // the bucket [-10, -5) excluded -5 itself.
+      const euBuckets: { range: string; test: (v: number) => boolean; count: number }[] = [
+        { range: 'Strong Eurosceptic', test: (v) => v <= -5, count: 0 },
+        { range: 'Eurosceptic', test: (v) => v > -5 && v < -1, count: 0 },
+        { range: 'Neutral', test: (v) => v >= -1 && v <= 1, count: 0 },
+        { range: 'Pro-EU', test: (v) => v > 1 && v < 5, count: 0 },
+        { range: 'Strong Pro-EU', test: (v) => v >= 5, count: 0 },
       ];
       positions.forEach((p: any) => {
         if (!Number.isFinite(Number(p?.eu_integration_score))) return;
         const v = Number(p.eu_integration_score);
-        const bucket = euBuckets.find(b => v >= b.min && v < b.max);
+        const bucket = euBuckets.find((b) => b.test(v));
         if (bucket) bucket.count++;
       });
       const euDistribution = euBuckets.map(b => ({ name: b.range, count: b.count }));

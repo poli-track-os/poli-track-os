@@ -43,6 +43,9 @@ describe('official roster parsers', () => {
     expect(records[0]).toMatchObject({
       recordId: 'pt-ar:6535',
       name: 'André Ventura',
+      biography: null,
+      birthYear: null,
+      committees: [],
       constituency: 'Lisboa',
       partyAbbreviation: 'CH',
       partyName: 'Chega',
@@ -60,6 +63,13 @@ describe('official roster parsers', () => {
       {
         CadId: 6535,
         CadNomeCompleto: 'André Claro Amaral Ventura',
+        CadDtNascimento: '1983-01-19',
+        CadProfissao: 'Jurista',
+        CadHabilitacoes: [{ HabDes: 'Direito' }],
+        CadCargosFuncoes: [{ FunDes: 'Professor convidado', FunOrdem: 1 }],
+        CadActividadeOrgaos: {
+          actividadeCom: [{ legDes: 'XVII', orgDes: 'Comissão de Assuntos Constitucionais', timDes: 'Efetivo' }],
+        },
         CadDeputadoLegis: [
           {
             LegDes: 'XVII',
@@ -101,6 +111,9 @@ describe('official roster parsers', () => {
     expect(records[0]).toMatchObject({
       recordId: 'pt-ar:6535',
       name: 'André Ventura',
+      biography: 'Member of Parliament from Portugal, for Chega, representing Lisboa. Official Assembly data lists the profession as Jurista. Education includes Direito. Past or current roles include Professor convidado.',
+      birthYear: 1983,
+      committees: ['Comissão de Assuntos Constitucionais (Efetivo)'],
       constituency: 'Lisboa',
       partyAbbreviation: 'CH',
       partyName: 'Chega',
@@ -125,6 +138,7 @@ describe('official roster parsers', () => {
             </NAME>
           </NAMEN>
           <BIOGRAFISCHE_ANGABEN>
+            <GEBURTSDATUM>01.02.1980</GEBURTSDATUM>
             <PARTEI_KURZ>AfD</PARTEI_KURZ>
           </BIOGRAFISCHE_ANGABEN>
           <WAHLPERIODEN>
@@ -138,6 +152,10 @@ describe('official roster parsers', () => {
                 <INSTITUTION>
                   <INSART_LANG>Fraktion/Gruppe</INSART_LANG>
                   <INS_LANG>AfD-Fraktion</INS_LANG>
+                </INSTITUTION>
+                <INSTITUTION>
+                  <INSART_LANG>Ausschuss</INSART_LANG>
+                  <INS_LANG>Haushaltsausschuss</INS_LANG>
                 </INSTITUTION>
               </INSTITUTIONEN>
             </WAHLPERIODE>
@@ -183,11 +201,14 @@ describe('official roster parsers', () => {
     expect(records[0]).toMatchObject({
       recordId: 'de-bundestag:11001234',
       name: 'Max Mustermann',
+      birthYear: 1980,
+      committees: ['Haushaltsausschuss'],
       partyAbbreviation: 'AfD',
       partyName: 'Alternative for Germany',
       constituency: 'Berlin-Mitte / BE',
       inOfficeSince: '2025-03-25',
     });
+    expect(records[0].biography).toContain('Member of Bundestag from Germany');
     expect(records[0].alternateNames).toEqual(['Max Mustermann']);
   });
 

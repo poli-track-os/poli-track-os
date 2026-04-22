@@ -1,5 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { buildVoteIntegrityReport, type ProposalVoteEvent, type ProposalVoteGroup, type ProposalVoteRecord } from '@/lib/proposal-vote-analytics';
+
+const DEFAULT_PROPOSAL_LIST_PAGE_SIZE = 1000;
+const PROPOSALS_LIST_STALE_TIME_MS = 1000 * 60 * 5;
+const PROPOSALS_STATS_STALE_TIME_MS = 1000 * 60 * 30;
+const PROPOSALS_CACHE_TIME_MS = 1000 * 60 * 60;
 
 export interface DbProposal {
   id: string;
@@ -18,8 +24,45 @@ export interface DbProposal {
   summary: string | null;
   policy_area: string | null;
   source_url: string | null;
+  data_source: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface ProposalVotesPayload {
+  events: ProposalVoteEvent[];
+  groups: ProposalVoteGroup[];
+  records: ProposalVoteRecord[];
+  latestEvent: ProposalVoteEvent | null;
+  latestEventGroups: ProposalVoteGroup[];
+  latestEventRecords: ProposalVoteRecord[];
+  integrity: ReturnType<typeof buildVoteIntegrityReport>;
+}
+
+export interface ProposalStatsCountBucket {
+  name: string;
+  count: number;
+}
+
+export interface ProposalStatsCountryBucket {
+  code: string;
+  name: string;
+  count: number;
+}
+
+export interface ProposalStatsPayload {
+  total: number;
+  byCountry: ProposalStatsCountryBucket[];
+  byStatus: ProposalStatsCountBucket[];
+  byArea: ProposalStatsCountBucket[];
+}
+
+export interface ProposalFilters {
+  countryCode?: string;
+  status?: string;
+  policyArea?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export const statusLabels: Record<string, string> = {
@@ -46,18 +89,40 @@ export const statusColors: Record<string, string> = {
   parliamentary_deliberation: 'bg-warning/10',
 };
 
-export function useProposals(filters?: { countryCode?: string; status?: string; policyArea?: string }) {
+export function useProposals(filters?: ProposalFilters) {
+  // Normalize country_code to uppercase so URL params like
+  // `/proposals?country=de` still match the uppercase DB values.
+  const normalized = filters
+    ? {
+        ...filters,
+        countryCode: filters.countryCode?.toUpperCase(),
+        page: filters.page ?? 1,
+        pageSize: filters.pageSize ?? DEFAULT_PROPOSAL_LIST_PAGE_SIZE,
+      }
+    : undefined;
   return useQuery({
-    queryKey: ['proposals', filters],
+    queryKey: ['proposals', normalized],
     queryFn: async () => {
-      let query = supabase.from('proposals').select('*').order('submitted_date', { ascending: false });
-      if (filters?.countryCode) query = query.eq('country_code', filters.countryCode);
-      if (filters?.status) query = query.eq('status', filters.status);
-      if (filters?.policyArea) query = query.eq('policy_area', filters.policyArea);
-      const { data, error } = await query;
+      let query = supabase
+        .from('proposals')
+        .select('*')
+        .order('submitted_date', { ascending: false });
+
+      if (normalized?.countryCode) query = query.eq('country_code', normalized.countryCode);
+      if (normalized?.status) query = query.eq('status', normalized.status);
+      if (normalized?.policyArea) query = query.eq('policy_area', normalized.policyArea);
+
+      const page = normalized?.page ?? 1;
+      const pageSize = normalized?.pageSize ?? DEFAULT_PROPOSAL_LIST_PAGE_SIZE;
+      const from = Math.max(0, (page - 1) * pageSize);
+      const to = from + pageSize - 1;
+
+      const { data, error } = await query.range(from, to);
       if (error) throw error;
       return (data || []) as DbProposal[];
     },
+    staleTime: PROPOSALS_LIST_STALE_TIME_MS,
+    gcTime: PROPOSALS_CACHE_TIME_MS,
   });
 }
 
@@ -74,21 +139,73 @@ export function useProposal(id: string | undefined) {
   });
 }
 
-export function useProposalsByCountry(countryCode: string | undefined) {
+export function useProposalVotes(id: string | undefined) {
   return useQuery({
-    queryKey: ['proposals-by-country', countryCode],
+    queryKey: ['proposal-votes', id],
     queryFn: async () => {
-      if (!countryCode) return [];
+      if (!id) return null;
+      const { data: events, error: eventsError } = await supabase
+        .from('proposal_vote_events')
+        .select('*')
+        .eq('proposal_id', id)
+        .order('happened_at', { ascending: false, nullsFirst: false });
+      if (eventsError) throw eventsError;
+      const voteEvents = (events ?? []) as ProposalVoteEvent[];
+      if (voteEvents.length === 0) {
+        return {
+          events: [],
+          groups: [],
+          records: [],
+          latestEvent: null,
+          latestEventGroups: [],
+          latestEventRecords: [],
+          integrity: buildVoteIntegrityReport(null, []),
+        } as ProposalVotesPayload;
+      }
+
+      const eventIds = voteEvents.map((event) => event.id);
+      const [{ data: groups, error: groupsError }, { data: records, error: recordsError }] = await Promise.all([
+        supabase.from('proposal_vote_groups').select('*').in('event_id', eventIds),
+        supabase.from('proposal_vote_records').select('*').in('event_id', eventIds),
+      ]);
+      if (groupsError) throw groupsError;
+      if (recordsError) throw recordsError;
+
+      const voteGroups = (groups ?? []) as ProposalVoteGroup[];
+      const voteRecords = (records ?? []) as ProposalVoteRecord[];
+      const latestEvent = voteEvents[0] ?? null;
+      const latestEventGroups = latestEvent ? voteGroups.filter((group) => group.event_id === latestEvent.id) : [];
+      const latestEventRecords = latestEvent ? voteRecords.filter((record) => record.event_id === latestEvent.id) : [];
+      return {
+        events: voteEvents,
+        groups: voteGroups,
+        records: voteRecords,
+        latestEvent,
+        latestEventGroups,
+        latestEventRecords,
+        integrity: buildVoteIntegrityReport(latestEvent, latestEventRecords),
+      } as ProposalVotesPayload;
+    },
+    enabled: !!id,
+  });
+}
+
+export function useProposalsByCountry(countryCode: string | undefined) {
+  const normalized = countryCode?.toUpperCase();
+  return useQuery({
+    queryKey: ['proposals-by-country', normalized],
+    queryFn: async () => {
+      if (!normalized) return [];
       const { data, error } = await supabase
         .from('proposals')
         .select('*')
-        .eq('country_code', countryCode.toUpperCase())
+        .eq('country_code', normalized)
         .order('submitted_date', { ascending: false })
         .limit(20);
       if (error) throw error;
       return (data || []) as DbProposal[];
     },
-    enabled: !!countryCode,
+    enabled: !!normalized,
   });
 }
 
@@ -114,27 +231,31 @@ export function useProposalStats() {
   return useQuery({
     queryKey: ['proposal-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('proposals').select('country_code, country_name, status, policy_area, proposal_type');
+      const { data, error } = await supabase.rpc('get_proposal_stats');
       if (error) throw error;
-      const proposals = data || [];
 
-      const byCountry: Record<string, { code: string; name: string; count: number }> = {};
-      const byStatus: Record<string, number> = {};
-      const byArea: Record<string, number> = {};
-
-      proposals.forEach((p: any) => {
-        if (!byCountry[p.country_code]) byCountry[p.country_code] = { code: p.country_code, name: p.country_name, count: 0 };
-        byCountry[p.country_code].count++;
-        byStatus[p.status] = (byStatus[p.status] || 0) + 1;
-        if (p.policy_area) byArea[p.policy_area] = (byArea[p.policy_area] || 0) + 1;
-      });
-
+      const stats = (data ?? {}) as Partial<ProposalStatsPayload> | null;
       return {
-        total: proposals.length,
-        byCountry: Object.values(byCountry).sort((a, b) => b.count - a.count),
-        byStatus: Object.entries(byStatus).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
-        byArea: Object.entries(byArea).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
-      };
+        total: typeof stats?.total === 'number' ? stats.total : 0,
+        byCountry: Array.isArray(stats?.byCountry) ? stats.byCountry : [],
+        byStatus: Array.isArray(stats?.byStatus) ? stats.byStatus : [],
+        byArea: Array.isArray(stats?.byArea) ? stats.byArea : [],
+      } satisfies ProposalStatsPayload;
     },
+    staleTime: PROPOSALS_STATS_STALE_TIME_MS,
+    gcTime: PROPOSALS_CACHE_TIME_MS,
+  });
+}
+
+export function useProposalTotalCount() {
+  return useQuery({
+    queryKey: ['proposal-total-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase.from('proposals').select('id', { count: 'exact', head: true });
+      if (error) throw error;
+      return count || 0;
+    },
+    staleTime: PROPOSALS_STATS_STALE_TIME_MS,
+    gcTime: PROPOSALS_CACHE_TIME_MS,
   });
 }

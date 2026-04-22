@@ -5,12 +5,13 @@ import SiteFooter from '@/components/SiteFooter';
 import SearchBar from '@/components/SearchBar';
 import ActorCard from '@/components/ActorCard';
 import { usePoliticians, useCountryStats } from '@/hooks/use-politicians';
-import { useProposals } from '@/hooks/use-proposals';
+import { useProposalTotalCount, useProposals } from '@/hooks/use-proposals';
 
 const Index = () => {
   const { data: actors = [] } = usePoliticians();
   const { data: countryStats = [] } = useCountryStats();
-  const { data: proposals = [] } = useProposals();
+  const { data: proposals = [] } = useProposals({ pageSize: 5 });
+  const { data: proposalTotal = 0 } = useProposalTotalCount();
   const totalParties = new Set(countryStats.flatMap(c => c.parties)).size;
   const recentActors = useMemo(
     () =>
@@ -18,6 +19,16 @@ const Index = () => {
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
         .slice(0, 12),
     [actors],
+  );
+  // Clone before sort — countryStats is the React Query cache reference;
+  // .sort() in place would mutate it and corrupt every other consumer
+  // (Explore, CountryDetail, Relationships, SearchBar, PartyDetail).
+  const topCountries = useMemo(
+    () =>
+      [...countryStats]
+        .sort((a, b) => b.actorCount - a.actorCount)
+        .slice(0, 10),
+    [countryStats],
   );
 
   return (
@@ -61,7 +72,7 @@ const Index = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Proposals tracked</span>
-                  <span className="font-bold text-foreground">{proposals.length}</span>
+                  <span className="font-bold text-foreground">{proposalTotal}</span>
                 </div>
               </div>
             </div>
@@ -97,10 +108,7 @@ const Index = () => {
                 <h2 className="text-sm font-extrabold tracking-tight">COUNTRIES BY COVERAGE</h2>
               </div>
               <div className="space-y-2">
-                {countryStats
-                  .sort((a, b) => b.actorCount - a.actorCount)
-                  .slice(0, 10)
-                  .map(c => (
+                {topCountries.map(c => (
                     <Link key={c.code} to={`/country/${c.code.toLowerCase()}`} className="block brutalist-border px-3 py-2 flex items-center justify-between hover:bg-secondary transition-colors">
                       <span className="font-mono text-xs font-bold">{c.code} · {c.name}</span>
                       <span className="evidence-tag">{c.actorCount} actors</span>

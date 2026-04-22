@@ -402,20 +402,44 @@ Deno.serve(async (req) => {
       p_delta: created,
     });
 
-    // P2.7: chain enrich-wikipedia with explicit ids, not a bare batchSize
+    // P2.7: chain enrich-wikipedia with explicit ids, not a bare batchSize.
+    //
+    // Previously this was a fire-and-forget `fetch(...).catch(() => {})`
+    // with no `await`. Supabase edge workers terminate as soon as the
+    // Response is returned, so the dangling promise was cancelled
+    // mid-flight roughly half the time. Now we await the chunked calls
+    // (bounded by MAX_CHAINED_CHUNKS so we stay inside our own wall-clock
+    // budget). Anything we don't reach falls into enrich-wikipedia's
+    // "null enriched_at" backlog and gets drained by the next ingest run.
+    const ENRICH_CHUNK = 50;
+    const MAX_CHAINED_CHUNKS = 2; // ~100 rows per parent run is plenty
+    let enrichmentTriggered = 0;
     if (createdIds.length > 0) {
       const enrichUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/enrich-wikipedia`;
-      fetch(enrichUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-        },
-        body: JSON.stringify({
-          politicianIds: createdIds.slice(0, 20),
-          parentRunId: runId,
-        }),
-      }).catch(() => {});
+      const totalChunks = Math.min(
+        Math.ceil(createdIds.length / ENRICH_CHUNK),
+        MAX_CHAINED_CHUNKS,
+      );
+      for (let i = 0; i < totalChunks; i++) {
+        const slice = createdIds.slice(i * ENRICH_CHUNK, (i + 1) * ENRICH_CHUNK);
+        try {
+          await fetch(enrichUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              politicianIds: slice,
+              parentRunId: runId,
+            }),
+            signal: AbortSignal.timeout(25000),
+          });
+          enrichmentTriggered += slice.length;
+        } catch (e) {
+          console.log(`Wikipedia enrichment chunk ${i + 1}/${totalChunks} failed (non-blocking):`, e);
+        }
+      }
     }
 
     return new Response(JSON.stringify({

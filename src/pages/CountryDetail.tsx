@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronDown, ExternalLink, Landmark, Search, Users, FileText } from 'lucide-react';
 import SiteHeader from '@/components/SiteHeader';
@@ -12,10 +12,14 @@ import { useCountryStats, usePoliticiansByCountry } from '@/hooks/use-politician
 import { useCountryMetadata } from '@/hooks/use-country-metadata';
 import { usePartiesMetadata } from '@/hooks/use-party-metadata';
 import ProposalCard from '@/components/ProposalCard';
+import CountryBudgetPanel from '@/components/CountryBudgetPanel';
+import PoliticalSystemAtlasPanel from '@/components/PoliticalSystemAtlasPanel';
 import { useProposalsByCountry } from '@/hooks/use-proposals';
 import { buildPartyDescription, getTopCommittees, slugifyPartyName } from '@/lib/party-summary';
+import { buildInternalPersonRoute } from '@/lib/internal-links';
 import { getDisplayPersonName } from '@/lib/person-display';
 import { formatTimestampLabel } from '@/lib/date-display';
+import { getCountryPoliticalProfile } from '@/lib/political-system-profiles';
 import {
   buildTrackedLeadershipEntries,
   getLeadershipCategory,
@@ -51,28 +55,38 @@ function getActorSearchText(actor: {
   return [actor.name, actor.party, actor.role, ...actor.committees].join(' ').toLowerCase();
 }
 
-function renderMaybeLinkedName(entry: { href?: string; personName: string } | undefined, fallback: string) {
-  const displayName = getDisplayPersonName(entry?.personName || fallback, entry?.href, 'Unresolved profile');
-  if (!entry?.href) return displayName;
-
-  if (entry.href.startsWith('/')) {
-    return (
-      <Link to={entry.href} className="hover:underline">
-        {displayName}
-      </Link>
-    );
-  }
-
-  return (
-    <a href={entry.href} target="_blank" rel="noopener noreferrer" className="hover:underline">
-      {displayName}
-    </a>
-  );
-}
-
 function isCanonicalLeadershipOffice(office: string) {
   const lower = office.toLowerCase();
   return lower === 'head of state' || lower === 'head of government';
+}
+
+function resolveCurrentLeadershipName(
+  office: 'Head of State' | 'Head of Government',
+  directName: string | undefined,
+  officeholders: Array<{
+    office: string;
+    personName: string;
+    personUrl?: string;
+    personEntityId?: string;
+  }> | undefined,
+) {
+  const directNameKey = directName ? normalizePersonName(directName) : '';
+  const expectedCategory = office === 'Head of State' ? 'head_of_state' : 'head_of_government';
+  const canonicalOfficeholder =
+    officeholders?.find((entry) => entry.office === office) ||
+    officeholders?.find((entry) => {
+      if (getLeadershipCategory(entry.office) !== expectedCategory) return false;
+      if (entry.personEntityId && directName && entry.personEntityId === directName) return true;
+      if (directNameKey && normalizePersonName(entry.personName) === directNameKey) return true;
+      return false;
+    });
+  return normalizePersonName(
+    getDisplayPersonName(
+      directName || canonicalOfficeholder?.personName || '',
+      canonicalOfficeholder?.personUrl,
+      canonicalOfficeholder?.personEntityId || directName || office,
+    ),
+  );
 }
 
 function mergeLeadershipEntry(existing: LeadershipEntry, incoming: LeadershipEntry): LeadershipEntry {
@@ -85,10 +99,11 @@ function mergeLeadershipEntry(existing: LeadershipEntry, incoming: LeadershipEnt
     : existing.office;
   const personName = existing.personName.length >= incoming.personName.length ? existing.personName : incoming.personName;
   const href =
-    existing.href?.startsWith('/') ? existing.href
-    : incoming.href?.startsWith('/') ? incoming.href
+    existing.source === 'tracked' && existing.href ? existing.href
+    : incoming.source === 'tracked' && incoming.href ? incoming.href
     : existing.href || incoming.href;
-  const source = href?.startsWith('/') ? 'tracked' : existing.source === 'tracked' || incoming.source === 'tracked' ? 'tracked' : 'wikidata';
+  const source = existing.source === 'tracked' || incoming.source === 'tracked' ? 'tracked' : 'reference';
+  const sourceUrl = existing.sourceUrl || incoming.sourceUrl;
 
   return {
     category: existing.category,
@@ -96,6 +111,7 @@ function mergeLeadershipEntry(existing: LeadershipEntry, incoming: LeadershipEnt
     personName,
     href,
     source,
+    sourceUrl,
     priority: Math.max(existing.priority, incoming.priority),
   };
 }
@@ -114,26 +130,33 @@ const CountryDetail = () => {
   const countryName = country?.name || actors[0]?.canton || countryCode || 'Unknown';
   const continent = country?.continent || 'Unknown';
   const { data: metadata } = useCountryMetadata(countryCode, countryName !== countryCode ? countryName : undefined);
+  const politicalProfile = getCountryPoliticalProfile(countryCode);
   const metadataUpdatedAt = metadata?.sourceUpdatedAt || metadata?.databaseUpdatedAt;
   const { data: proposals = [] } = useProposalsByCountry(countryCode);
 
-  const actorsByParty = actors.reduce<Record<string, typeof actors>>((groups, actor) => {
-    const party = actor.party?.trim() || 'Independent / unaligned';
-    if (!groups[party]) groups[party] = [];
-    groups[party].push(actor);
-    return groups;
-  }, {});
-
-  const partyGroups = Object.entries(actorsByParty)
-    .map(([party, members]) => ({
-      party,
-      members,
-      share: actors.length > 0 ? Math.round((members.length / actors.length) * 100) : 0,
-      roles: Array.from(new Set(members.map((member) => member.role).filter(Boolean))).slice(0, 2),
-      topCommittees: getTopCommittees(members, 3),
-      description: buildPartyDescription(party, countryName, members),
-    }))
-    .sort((left, right) => right.members.length - left.members.length || left.party.localeCompare(right.party));
+  // Memoize `partyGroups` against `actors` (a TanStack Query reference,
+  // stable across renders for the same data) so downstream `partyNames`
+  // and the effect on partyNames don't re-run every render. Without
+  // memoization, the effect on line ~200 fires every render and
+  // re-queues setExpandedParties indefinitely.
+  const partyGroups = useMemo(() => {
+    const actorsByParty = actors.reduce<Record<string, typeof actors>>((groups, actor) => {
+      const party = actor.party?.trim() || 'Independent / unaligned';
+      if (!groups[party]) groups[party] = [];
+      groups[party].push(actor);
+      return groups;
+    }, {});
+    return Object.entries(actorsByParty)
+      .map(([party, members]) => ({
+        party,
+        members,
+        share: actors.length > 0 ? Math.round((members.length / actors.length) * 100) : 0,
+        roles: Array.from(new Set(members.map((member) => member.role).filter(Boolean))).slice(0, 2),
+        topCommittees: getTopCommittees(members, 3),
+        description: buildPartyDescription(party, countryName, members),
+      }))
+      .sort((left, right) => right.members.length - left.members.length || left.party.localeCompare(right.party));
+  }, [actors, countryName]);
 
   const filteredActors = deferredSearchQuery
     ? actors.filter((actor) => getActorSearchText(actor).includes(deferredSearchQuery))
@@ -147,34 +170,82 @@ const CountryDetail = () => {
     .filter((group) => group.members.length > 0);
 
   const committeeCount = new Set(actors.flatMap((actor) => actor.committees)).size;
-  const partyNames = partyGroups.map((group) => group.party);
+  // partyGroups is now memoized, so this derived array is also stable
+  // across renders that don't change the underlying data.
+  const partyNames = useMemo(
+    () => partyGroups.map((group) => group.party),
+    [partyGroups],
+  );
   const { data: partyMetadataByName = {} } = usePartiesMetadata(countryName, partyNames);
   const actorsByNormalizedName = new Map(
     actors.map((actor) => [normalizePersonName(actor.name), actor]),
   );
+  const actorsByProfileUrl = new Map(
+    actors.flatMap((actor) => {
+      const entries: Array<[string, (typeof actors)[number]]> = [];
+      if (actor.wikipediaUrl) entries.push([actor.wikipediaUrl, actor]);
+      if (actor.sourceUrl) entries.push([actor.sourceUrl, actor]);
+      return entries;
+    }),
+  );
   const trackedLeadership = buildTrackedLeadershipEntries(actors);
   const leadershipEntries = [...trackedLeadership];
+  const normalizedCurrentHeadOfState = resolveCurrentLeadershipName(
+    'Head of State',
+    metadata?.headOfState,
+    metadata?.officeholders,
+  );
+  const normalizedCurrentHeadOfGovernment = resolveCurrentLeadershipName(
+    'Head of Government',
+    metadata?.headOfGovernment,
+    metadata?.officeholders,
+  );
 
   for (const officeholder of metadata?.officeholders || []) {
+    const officeCategory = getLeadershipCategory(officeholder.office);
+    const officePriority = getLeadershipPriority(officeholder.office);
+    if (!officeCategory || officePriority < 0) continue;
+
     const personName = getDisplayPersonName(
       officeholder.personName,
       officeholder.personUrl,
       officeholder.personEntityId || 'Unresolved profile',
     );
-    const actor = actorsByNormalizedName.get(normalizePersonName(personName));
-    const href = actor ? `/actors/${actor.id}` : officeholder.personUrl;
+    const normalizedPersonName = normalizePersonName(personName);
+    if (
+      officeCategory === 'head_of_state' &&
+      normalizedCurrentHeadOfState &&
+      normalizedPersonName !== normalizedCurrentHeadOfState &&
+      officeholder.office.toLowerCase() !== 'head of state'
+    ) {
+      continue;
+    }
+    if (
+      officeCategory === 'head_of_government' &&
+      normalizedCurrentHeadOfGovernment &&
+      normalizedPersonName !== normalizedCurrentHeadOfGovernment &&
+      officeholder.office.toLowerCase() !== 'head of government'
+    ) {
+      continue;
+    }
+
+    const actor =
+      (officeholder.personUrl ? actorsByProfileUrl.get(officeholder.personUrl) : undefined) ||
+      actorsByNormalizedName.get(normalizedPersonName);
+    const href = buildInternalPersonRoute({ actorId: actor?.id, personName, countryCode });
     const incomingEntry: LeadershipEntry = {
-      category: getLeadershipCategory(officeholder.office) || officeholder.office.toLowerCase(),
+      category: officeCategory,
       office: officeholder.office,
       personName,
       href,
-      source: actor ? 'tracked' : 'wikidata',
-      priority: Math.max(getLeadershipPriority(officeholder.office), actor ? 110 : 80),
+      source: actor ? 'tracked' : 'reference',
+      sourceUrl: officeholder.personUrl,
+      priority: Math.max(officePriority, actor ? 110 : 80),
     };
     const duplicateIndex = leadershipEntries.findIndex(
       (entry) =>
         entry.category === incomingEntry.category &&
-        normalizePersonName(entry.personName) === normalizePersonName(incomingEntry.personName),
+        normalizePersonName(entry.personName) === normalizedPersonName,
     );
 
     if (duplicateIndex === -1) {
@@ -245,7 +316,8 @@ const CountryDetail = () => {
       const actor = actorsByNormalizedName.get(normalizePersonName(leader.name));
       return {
         name: leader.name,
-        href: actor ? `/actors/${actor.id}` : leader.url,
+        href: buildInternalPersonRoute({ actorId: actor?.id, personName: leader.name, countryCode }),
+        sourceUrl: leader.url,
       };
     });
   };
@@ -359,6 +431,8 @@ const CountryDetail = () => {
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.45fr)_320px] gap-6">
           <div className="space-y-6">
+            {politicalProfile && <PoliticalSystemAtlasPanel profile={politicalProfile} />}
+
             <section className="brutalist-border p-4 bg-card">
               <div className="flex flex-col md:flex-row md:items-center gap-3 justify-between">
                 <div>
@@ -456,8 +530,12 @@ const CountryDetail = () => {
                           </p>
                           {leaderLinks.length > 0 && (
                             <p className="text-[11px] font-mono text-muted-foreground mt-1">
-                              {leaderLinks.length === 1 ? 'Leader' : 'Leaders'}:{' '}
-                              <LinkedPersonTextList people={leaderLinks} linkAriaLabelPrefix="Party leader" />
+                          {leaderLinks.length === 1 ? 'Leader' : 'Leaders'}:{' '}
+                              <LinkedPersonTextList
+                                people={leaderLinks}
+                                linkAriaLabelPrefix="Party leader"
+                                sourceLinkAriaLabelPrefix="Open source for party leader"
+                              />
                             </p>
                           )}
                         </div>
@@ -520,6 +598,8 @@ const CountryDetail = () => {
           </div>
 
           <aside className="space-y-4">
+            {countryCode && <CountryBudgetPanel countryCode={countryCode} />}
+
             <section className="brutalist-border p-4 bg-card">
               <h2 className="text-xs font-mono font-bold text-muted-foreground mb-3 flex items-center gap-2">
                 <Landmark className="w-3 h-3" />
@@ -549,13 +629,39 @@ const CountryDetail = () => {
                 <div className="brutalist-border p-3">
                   <div className="text-[10px] font-mono text-muted-foreground uppercase">Head of State</div>
                   <div className="text-sm font-bold mt-1">
-                    {renderMaybeLinkedName(headOfStateEntry, metadata?.headOfState || '—')}
+                    <LinkedPersonTextList
+                      people={headOfStateEntry ? [{
+                        href: headOfStateEntry.href,
+                        name: getDisplayPersonName(
+                          headOfStateEntry.personName,
+                          headOfStateEntry.sourceUrl || headOfStateEntry.href,
+                          metadata?.headOfState || '—',
+                        ),
+                        sourceUrl: headOfStateEntry.sourceUrl,
+                      }] : []}
+                      emptyLabel={metadata?.headOfState || '—'}
+                      linkAriaLabelPrefix="Head of state"
+                      sourceLinkAriaLabelPrefix="Open source for head of state"
+                    />
                   </div>
                 </div>
                 <div className="brutalist-border p-3">
                   <div className="text-[10px] font-mono text-muted-foreground uppercase">Head of Government</div>
                   <div className="text-sm font-bold mt-1">
-                    {renderMaybeLinkedName(headOfGovernmentEntry, metadata?.headOfGovernment || '—')}
+                    <LinkedPersonTextList
+                      people={headOfGovernmentEntry ? [{
+                        href: headOfGovernmentEntry.href,
+                        name: getDisplayPersonName(
+                          headOfGovernmentEntry.personName,
+                          headOfGovernmentEntry.sourceUrl || headOfGovernmentEntry.href,
+                          metadata?.headOfGovernment || '—',
+                        ),
+                        sourceUrl: headOfGovernmentEntry.sourceUrl,
+                      }] : []}
+                      emptyLabel={metadata?.headOfGovernment || '—'}
+                      linkAriaLabelPrefix="Head of government"
+                      sourceLinkAriaLabelPrefix="Open source for head of government"
+                    />
                   </div>
                 </div>
               </div>
@@ -570,7 +676,7 @@ const CountryDetail = () => {
                   </h2>
                 </div>
                 <p className="text-[10px] font-mono text-muted-foreground mb-3">
-                  Head of state, head of government, and top cabinet / military offices. Tracked profiles first, Wikipedia / Wikidata as fallback.
+                  Head of state, head of government, and top cabinet / military offices. Main links stay inside PoliTrack; source buttons open the original reference.
                 </p>
                 <div className="space-y-3">
                   {leadershipEntries.map((entry) => (
@@ -580,6 +686,7 @@ const CountryDetail = () => {
                       personName={entry.personName}
                       href={entry.href}
                       source={entry.source}
+                      sourceUrl={entry.sourceUrl}
                     />
                   ))}
                 </div>
@@ -642,7 +749,11 @@ const CountryDetail = () => {
                               {leaderLinks.length > 0 && (
                                 <div className="mt-2 text-[10px] font-mono text-muted-foreground">
                                   {leaderLinks.length === 1 ? 'Leader' : 'Leaders'}:{' '}
-                                  <LinkedPersonTextList people={leaderLinks} linkAriaLabelPrefix="Party snapshot leader" />
+                                  <LinkedPersonTextList
+                                    people={leaderLinks}
+                                    linkAriaLabelPrefix="Party snapshot leader"
+                                    sourceLinkAriaLabelPrefix="Open source for party snapshot leader"
+                                  />
                                 </div>
                               )}
                               {partyMetadata?.politicalPosition && (

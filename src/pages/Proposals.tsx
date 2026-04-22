@@ -12,12 +12,16 @@ const Proposals = () => {
   const countryFilter = searchParams.get('country') || '';
   const statusFilter = searchParams.get('status') || '';
   const areaFilter = searchParams.get('area') || '';
+  const pageFilter = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+  const pageSize = 60;
 
   const filters = useMemo(() => ({
     countryCode: countryFilter || undefined,
     status: statusFilter || undefined,
     policyArea: areaFilter || undefined,
-  }), [areaFilter, countryFilter, statusFilter]);
+    page: pageFilter,
+    pageSize,
+  }), [areaFilter, countryFilter, pageFilter, statusFilter]);
 
   const { data: proposals = [], isLoading } = useProposals(filters);
   const { data: stats } = useProposalStats();
@@ -28,12 +32,25 @@ const Proposals = () => {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
+    next.set('page', '1');
     setSearchParams(next);
   };
 
   const clearFilters = () => {
     setSearchParams({});
   };
+
+  const setPage = (page: number) => {
+    const next = new URLSearchParams(searchParams);
+    if (page <= 1) next.delete('page');
+    else next.set('page', String(page));
+    setSearchParams(next);
+  };
+
+  const showingStart = proposals.length > 0 ? (pageFilter - 1) * pageSize + 1 : 0;
+  const showingEnd = (pageFilter - 1) * pageSize + proposals.length;
+  const canGoPrev = pageFilter > 1;
+  const canGoNext = proposals.length === pageSize;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -120,11 +137,39 @@ const Proposals = () => {
             <p className="font-mono text-sm text-muted-foreground">No proposals match the current filters.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {proposals.map((p) => (
-              <ProposalCard key={p.id} proposal={p} />
-            ))}
-          </div>
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div className="font-mono text-[10px] text-muted-foreground uppercase">
+                Showing {showingStart}-{showingEnd}
+                {!countryFilter && !statusFilter && !areaFilter && stats ? ` of ${stats.total}` : ''}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage(pageFilter - 1)}
+                  disabled={!canGoPrev}
+                  className="brutalist-border px-3 py-1.5 text-xs font-mono bg-card disabled:opacity-40"
+                >
+                  PREV
+                </button>
+                <span className="font-mono text-[10px] text-muted-foreground uppercase">Page {pageFilter}</span>
+                <button
+                  type="button"
+                  onClick={() => setPage(pageFilter + 1)}
+                  disabled={!canGoNext}
+                  className="brutalist-border px-3 py-1.5 text-xs font-mono bg-card disabled:opacity-40"
+                >
+                  NEXT
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {proposals.map((p) => (
+                <ProposalCard key={p.id} proposal={p} />
+              ))}
+            </div>
+          </>
         )}
       </main>
       <SiteFooter />

@@ -138,6 +138,13 @@ export interface CountryMetadataRequestOptions {
   timeoutMs?: number;
 }
 
+type CountryOfficeholderCandidate = CountryOfficeholder | {
+  office?: string | null;
+  personName?: string | null;
+  personEntityId?: string;
+  personUrl?: string;
+};
+
 function createTimeoutSignal(timeoutMs: number | undefined) {
   if (!timeoutMs || typeof AbortSignal === 'undefined' || typeof AbortSignal.timeout !== 'function') {
     return undefined;
@@ -148,6 +155,23 @@ function createTimeoutSignal(timeoutMs: number | undefined) {
 
 function normalizeText(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function toCountryOfficeholder(
+  entry: CountryOfficeholderCandidate | null | undefined,
+): CountryOfficeholder | null {
+  if (!entry) return null;
+
+  const office = typeof entry.office === 'string' ? entry.office.trim() : '';
+  const personName = typeof entry.personName === 'string' ? entry.personName.trim() : '';
+  if (!office || !personName) return null;
+
+  return {
+    office,
+    personName,
+    personEntityId: entry.personEntityId,
+    personUrl: entry.personUrl,
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -453,7 +477,8 @@ async function fetchCountryOfficeholders(countryEntityId: string, options?: Coun
           personUrl,
         };
       })
-      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+      .map((entry) => (entry ? { ...entry, office: entry.office?.trim(), personName: entry.personName?.trim() } : null))
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry?.office && entry?.personName))
       .sort((left, right) => right.priority - left.priority || left.office.localeCompare(right.office))
       .map(({ priority: _priority, ...entry }) => entry);
   } catch {
@@ -555,9 +580,14 @@ export async function loadCountryMetadata(
           personUrl: basics[headOfGovernmentId]?.wikipediaUrl,
         }
       : null,
-  ].filter((entry): entry is NonNullable<typeof entry> => Boolean(entry.personName));
+  ]
+    .map((entry) => toCountryOfficeholder(entry))
+    .filter((entry): entry is CountryOfficeholder => Boolean(entry));
 
-  const combinedOfficeholders = [...directOfficeholders, ...officeholders].reduce<typeof directOfficeholders>((acc, entry) => {
+  const combinedOfficeholders = [...directOfficeholders, ...officeholders]
+    .map((entry) => toCountryOfficeholder(entry))
+    .filter((entry): entry is CountryOfficeholder => Boolean(entry))
+    .reduce<CountryOfficeholder[]>((acc, entry) => {
     if (
       acc.some(
         (candidate) =>

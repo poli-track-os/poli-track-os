@@ -1,4 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  buildReportSourceUrl,
+  parseReports,
+  reportEventTimestamp,
+} from "./parsers.ts";
 
 function serializeError(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -37,65 +42,8 @@ interface MepRow {
   external_id: string;
 }
 
-interface ReportEntry {
-  title: string;
-  reportId: string | null;
-  committee: string | null;
-  date: string | null;
-}
-
 function slugifyMepName(name: string): string {
   return name.toUpperCase().replace(/[^A-Z\s]/g, "").replace(/\s+/g, "_");
-}
-
-function parseReports(html: string): ReportEntry[] {
-  const reports: ReportEntry[] = [];
-
-  // 1. Extract all REPORT titles from <h3> (stripping nested tags first).
-  const titleRe = /<h3[^>]*>([\s\S]*?)<\/h3>/gi;
-  const titles: string[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = titleRe.exec(html))) {
-    const clean = m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-    if (/^REPORT\b/i.test(clean)) titles.push(clean);
-  }
-
-  // 2. Strip HTML tags from the whole document and collapse whitespace,
-  //    then parse the flat text for A-number + committee + date triples.
-  //    This is resilient to <span>/<div> noise between the fields.
-  const flat = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-
-  const idRe = /\b(A\d+-\d{4}\/\d{4})\s+(?:PE[\w.-]+\s+)?([A-Z]{3,6})\b/g;
-  const metas: Array<{ reportId: string; committee: string; date: string | null }> = [];
-  let mm: RegExpExecArray | null;
-  while ((mm = idRe.exec(flat))) {
-    // Find the nearest DD-MM-YYYY within a ±500 char window around the
-    // A-number. Dates can appear before or after depending on the card
-    // layout (ordering varies by EP page template).
-    const windowStart = Math.max(0, mm.index - 500);
-    const windowEnd = Math.min(flat.length, mm.index + mm[0].length + 500);
-    const window = flat.slice(windowStart, windowEnd);
-    const dateMatch = window.match(/(\d{2})-(\d{2})-(\d{4})/);
-    metas.push({
-      reportId: mm[1],
-      committee: mm[2],
-      date: dateMatch ? `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}` : null,
-    });
-  }
-
-  // Zip titles and metas positionally — the page lists them in order.
-  const n = Math.max(titles.length, metas.length);
-  for (let i = 0; i < n; i++) {
-    const meta = metas[i];
-    reports.push({
-      title: titles[i] ?? (meta?.reportId ?? "Report"),
-      reportId: meta?.reportId ?? null,
-      committee: meta?.committee ?? null,
-      date: meta?.date ?? null,
-    });
-  }
-
-  return reports;
 }
 
 async function fetchReportsPage(externalId: string, name: string): Promise<string | null> {
@@ -169,13 +117,9 @@ Deno.serve(async (req) => {
       if (!html) continue;
 
       const reports = parseReports(html);
-      if (reports.length === 0) continue;
 
-      const rows = reports.map((r) => {
-        const source_url = r.reportId
-          ? `https://www.europarl.europa.eu/doceo/document/${r.reportId}_EN.html`
-          : `https://www.europarl.europa.eu/meps/en/${mep.external_id}/main-activities/reports`;
-        return {
+      if (reports.length > 0) {
+        const rows = reports.map((r) => ({
           politician_id: mep.id,
           event_type: "legislation_sponsored" as const,
           title: r.reportId ? `${r.reportId}: ${r.title.substring(0, 180)}` : r.title.substring(0, 220),
@@ -185,22 +129,38 @@ Deno.serve(async (req) => {
             "Rapporteur attribution from EP main-activities page.",
           ].filter(Boolean).join(" · "),
           source: "parliamentary_record" as const,
-          source_url,
-          event_timestamp: r.date ? `${r.date}T00:00:00Z` : new Date().toISOString(),
+          source_url: buildReportSourceUrl(mep.external_id, r.reportId),
+          // Stable epoch sentinel when date is unknown so reruns stay
+          // idempotent against the unique index.
+          event_timestamp: reportEventTimestamp(r.date),
           raw_data: { reportId: r.reportId, committee: r.committee, date: r.date },
           evidence_count: 1,
           trust_level: 1,
           entities: r.committee ? [`#${r.committee}`] : [],
-        };
-      });
+        }));
 
-      if (rows.length > 0) {
-        const { data: ins } = await supabase
+        // CRITICAL: check the error on the upsert. The previous version
+        // silently swallowed errors (constraint target mismatches, etc.)
+        // and reported "0 events" with a green status.
+        const { data: ins, error: upsertErr } = await supabase
           .from("political_events")
           .upsert(rows, { onConflict: "politician_id,source_url,event_timestamp", ignoreDuplicates: true })
           .select("id");
+        if (upsertErr) {
+          console.error(`political_events upsert failed for mep ${mep.id}: ${upsertErr.message}`);
+          throw upsertErr;
+        }
         eventsWritten += ins?.length ?? 0;
       }
+
+      // Advance the cursor: bump updated_at so this MEP rotates to the
+      // back of the order-by-updated_at queue. Without this the scraper
+      // would re-process the same first batch on every cron invocation,
+      // because it doesn't otherwise touch the politicians row.
+      await supabase
+        .from("politicians")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", mep.id);
     }
 
     const hasMore = processed < meps.length;

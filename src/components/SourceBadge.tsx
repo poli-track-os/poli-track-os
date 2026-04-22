@@ -38,17 +38,17 @@ export function SourceBadge({ label, url, type, trustLevel }: SourceBadgeProps) 
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className={`inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded ${style} hover:opacity-80 transition-opacity`}
+        className={`inline-flex max-w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono whitespace-normal text-left ${style} hover:opacity-80 transition-opacity`}
       >
-        <ExternalLink className="w-2.5 h-2.5" />
-        {label}
+        <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+        <span className="break-words">{label}</span>
       </a>
     );
   }
 
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded ${style}`}>
-      {label}
+    <span className={`inline-flex max-w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono whitespace-normal text-left ${style}`}>
+      <span className="break-words">{label}</span>
     </span>
   );
 }
@@ -56,7 +56,7 @@ export function SourceBadge({ label, url, type, trustLevel }: SourceBadgeProps) 
 export function ProvenanceBar({ sources }: { sources: Array<{ label: string; url?: string; type?: SourceBadgeProps['type'] }> }) {
   if (sources.length === 0) return null;
   return (
-    <div className="flex flex-wrap gap-1.5 mt-2">
+    <div className="mt-2 flex min-w-0 flex-wrap gap-1.5">
       {sources.map((s, i) => (
         <SourceBadge key={i} {...s} />
       ))}

@@ -168,8 +168,10 @@ Deno.serve(async (req) => {
       return true;
     });
 
-    // Upsert on source_url. proposals has no unique index yet, so rely on
-    // a manual existence check to split create vs update.
+    // Use the proposals.source_url unique index as the idempotency key.
+    // The previous check-then-insert split raced with concurrent runs:
+    // another worker could insert the same source_url after our existence
+    // check but before our insert chunk, tripping proposals_source_url_uidx.
     const { data: existing } = await supabase
       .from("proposals")
       .select("id, source_url")
@@ -179,26 +181,23 @@ Deno.serve(async (req) => {
       if (row.source_url) existingByUrl.set(row.source_url, row.id);
     }
 
-    const toInsert = uniqueRows.filter((r) => !existingByUrl.has(r.source_url));
-    const toUpdate = uniqueRows.filter((r) => existingByUrl.has(r.source_url));
-
     let created = 0;
     let updated = 0;
 
-    if (toInsert.length > 0) {
-      for (let i = 0; i < toInsert.length; i += 50) {
-        const chunk = toInsert.slice(i, i + 50);
-        const { error, data } = await supabase.from("proposals").insert(chunk).select("id");
-        if (error) throw error;
-        created += data?.length ?? 0;
+    for (let i = 0; i < uniqueRows.length; i += 50) {
+      const chunk = uniqueRows.slice(i, i + 50);
+      const existingInChunk = chunk.filter((row) => existingByUrl.has(row.source_url)).length;
+      const { error, data } = await supabase
+        .from("proposals")
+        .upsert(chunk, { onConflict: "source_url" })
+        .select("id, source_url");
+      if (error) throw error;
+      const upserted = data?.length ?? chunk.length;
+      updated += existingInChunk;
+      created += Math.max(0, upserted - existingInChunk);
+      for (const row of data || []) {
+        if (row.source_url) existingByUrl.set(row.source_url, row.id);
       }
-    }
-
-    for (const row of toUpdate) {
-      const id = existingByUrl.get(row.source_url);
-      if (!id) continue;
-      const { error } = await supabase.from("proposals").update(row).eq("id", id);
-      if (!error) updated++;
     }
 
     await supabase.from("scrape_runs").update({
@@ -206,6 +205,7 @@ Deno.serve(async (req) => {
       records_fetched: bindings.length,
       records_created: created,
       records_updated: updated,
+      error_message: null,
       completed_at: new Date().toISOString(),
     }).eq("id", runId);
 

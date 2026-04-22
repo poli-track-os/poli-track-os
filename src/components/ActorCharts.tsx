@@ -11,6 +11,40 @@ interface Props {
   events: ActorEvent[];
 }
 
+// === Pure helpers exported for vitest verification ===
+
+// Bucket events by month using UTC, not local time. The previous
+// `getMonth()` / `getFullYear()` returned LOCAL time, which silently
+// shifted events at near-midnight UTC into the wrong month for any
+// non-UTC viewer.
+export function bucketEventsByMonth(events: ActorEvent[]): { month: string; count: number }[] {
+  const map: Record<string, number> = {};
+  events.forEach((e) => {
+    const d = new Date(e.timestamp);
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    map[key] = (map[key] || 0) + 1;
+  });
+  return Object.entries(map)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, count]) => ({ month, count }));
+}
+
+// Word-boundary vote detection. The previous `title.includes('YES')`
+// matched "YESTERDAY" / "NOTIFICATION" — boundaries fix that.
+export function countVotePattern(events: ActorEvent[]): { name: string; value: number }[] {
+  const votes = events.filter((e) => e.type === 'vote');
+  const has = (title: string, label: string) =>
+    new RegExp(`\\b${label}\\b`).test(title.toUpperCase());
+  const yes = votes.filter((e) => has(e.title, 'YES')).length;
+  const no = votes.filter((e) => has(e.title, 'NO')).length;
+  const abstain = votes.filter((e) => has(e.title, 'ABSTAIN')).length;
+  return [
+    { name: 'YES', value: yes },
+    { name: 'NO', value: no },
+    { name: 'ABSTAIN', value: abstain },
+  ].filter((d) => d.value > 0);
+}
+
 const COLORS = [
   'hsl(215, 30%, 45%)',   // accent
   'hsl(142, 50%, 40%)',   // green
@@ -23,18 +57,7 @@ const COLORS = [
 ];
 
 const ActorCharts = ({ events }: Props) => {
-  // Activity over time (monthly)
-  const activityByMonth = useMemo(() => {
-    const map: Record<string, number> = {};
-    events.forEach(e => {
-      const d = new Date(e.timestamp);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      map[key] = (map[key] || 0) + 1;
-    });
-    return Object.entries(map)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, count]) => ({ month, count }));
-  }, [events]);
+  const activityByMonth = useMemo(() => bucketEventsByMonth(events), [events]);
 
   // Event type breakdown
   const typeBreakdown = useMemo(() => {
@@ -65,26 +88,15 @@ const ActorCharts = ({ events }: Props) => {
       }));
   }, [events]);
 
-  // Voting pattern
-  const votingPattern = useMemo(() => {
-    const votes = events.filter(e => e.type === 'vote');
-    const yes = votes.filter(e => e.title.includes('YES')).length;
-    const no = votes.filter(e => e.title.includes('NO')).length;
-    const abstain = votes.filter(e => e.title.includes('ABSTAIN')).length;
-    return [
-      { name: 'YES', value: yes },
-      { name: 'NO', value: no },
-      { name: 'ABSTAIN', value: abstain },
-    ].filter(d => d.value > 0);
-  }, [events]);
+  const votingPattern = useMemo(() => countVotePattern(events), [events]);
 
-  // Sentiment over time
+  // Sentiment over time — UTC bucketing, see `activityByMonth`.
   const sentimentData = useMemo(() => {
     const map: Record<string, { pos: number; neg: number; neu: number }> = {};
     events.forEach(e => {
       if (!e.sentiment) return;
       const d = new Date(e.timestamp);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
       if (!map[key]) map[key] = { pos: 0, neg: 0, neu: 0 };
       if (e.sentiment === 'positive') map[key].pos++;
       else if (e.sentiment === 'negative') map[key].neg++;
