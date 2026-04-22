@@ -24,11 +24,12 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const { theme, toggleTheme } = useThemeMode();
+  const routerBase = import.meta.env.BASE_URL === "/" ? undefined : import.meta.env.BASE_URL.replace(/\/$/, "");
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeModeProvider theme={theme} toggleTheme={toggleTheme}>
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <BrowserRouter basename={routerBase} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Suspense
             fallback={
               <div className="min-h-screen flex items-center justify-center font-mono text-sm text-muted-foreground">

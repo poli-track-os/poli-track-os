@@ -128,6 +128,18 @@ npm run lint        # ESLint
 npm run typecheck   # tsc --noEmit
 ```
 
+## Public website
+
+The frontend is now set up for GitHub Pages deployment from `main` after successful CI via `.github/workflows/deploy-pages.yml`.
+
+Public URL after the workflow succeeds:
+
+```text
+https://poli-track-os.github.io/poli-track-os/
+```
+
+This is separate from the Supabase deploy workflow. GitHub Pages publishes the static frontend; Supabase continues to serve the database and edge-function backend.
+
 ## Deploying Supabase
 
 The repo is already linked to Supabase project `zygnkwyogazhwxfeatfc`. To update the hosted database schema and edge functions manually:
