@@ -196,6 +196,14 @@ Deno.serve(async (req) => {
 
       // 2. One row per declaration PDF as a financial_filing event, so
       //    the UI timeline shows when each document was filed.
+      //
+      //    When a PDF filename has no parseable date (DAB / CAH / certain
+      //    DAT filings), use a STABLE epoch sentinel instead of
+      //    `new Date().toISOString()`. The partial unique index on
+      //    (politician_id, source_url, event_timestamp) only deduplicates
+      //    if the timestamp is reproducible across runs — wall-clock
+      //    fallback would create a fresh row on every cron invocation.
+      const STABLE_UNKNOWN_TIMESTAMP = "1970-01-01T00:00:00Z";
       const eventRows = declarations.map((d) => ({
         politician_id: mep.id,
         event_type: "financial_disclosure" as const,
@@ -203,17 +211,25 @@ Deno.serve(async (req) => {
         description: `Published ${d.kind} filing. Authoritative source linked.`,
         source: "financial_filing" as const,
         source_url: d.url,
-        event_timestamp: d.date ? `${d.date}T00:00:00Z` : new Date().toISOString(),
+        event_timestamp: d.date ? `${d.date}T00:00:00Z` : STABLE_UNKNOWN_TIMESTAMP,
         raw_data: { kind: d.kind, section: d.section },
         evidence_count: 1,
         trust_level: 1,
       }));
 
       if (eventRows.length > 0) {
-        const { data: ins } = await supabase
+        // CRITICAL: check the error on the upsert. The previous version
+        // only destructured `data` and silently ignored `error`, so an
+        // upsert constraint target mismatch made the function report
+        // "0 events written" with a green status.
+        const { data: ins, error: upsertErr } = await supabase
           .from("political_events")
           .upsert(eventRows, { onConflict: "politician_id,source_url,event_timestamp", ignoreDuplicates: true })
           .select("id");
+        if (upsertErr) {
+          console.error(`political_events upsert failed for mep ${mep.id}: ${upsertErr.message}`);
+          throw upsertErr;
+        }
         eventsWritten += ins?.length ?? 0;
       }
 
@@ -221,6 +237,14 @@ Deno.serve(async (req) => {
       //    individual shareholdings, so we leave politician_investments
       //    alone for now. The UI already handles an empty list.
       investmentRowsWritten += 0;
+
+      // Advance the cursor: bump updated_at so this MEP rotates to the
+      // back of the order-by-updated_at queue. Without this the scraper
+      // would re-process the same first batch on every cron invocation.
+      await supabase
+        .from("politicians")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", mep.id);
     }
 
     if (runId) {

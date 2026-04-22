@@ -178,7 +178,10 @@ Deno.serve(async (req) => {
 
           // Upsert with the idempotency key from the new partial unique
           // index so reruns don't duplicate the same country-vote pair.
-          const { data: inserted, error } = await supabase
+          // Surface errors instead of swallowing them with `if (!error)`.
+          // A constraint target mismatch would previously report "0 events
+          // created" with a green status.
+          const { data: inserted, error: upsertErr } = await supabase
             .from("political_events")
             .upsert(
               {
@@ -204,7 +207,11 @@ Deno.serve(async (req) => {
               { onConflict: "politician_id,source_url,event_timestamp", ignoreDuplicates: true },
             )
             .select("id");
-          if (!error && inserted && inserted.length > 0) eventsCreated++;
+          if (upsertErr) {
+            console.error(`political_events upsert failed for pol ${pol.id}: ${upsertErr.message}`);
+            throw upsertErr;
+          }
+          if (inserted && inserted.length > 0) eventsCreated++;
         }
       }
     }
@@ -222,13 +229,13 @@ Deno.serve(async (req) => {
       })
       .eq("id", runId);
 
-    await supabase
-      .from("data_sources")
-      .update({
-        last_synced_at: new Date().toISOString(),
-        total_records: eventsCreated,
-      })
-      .eq("source_type", "un_digital_library");
+    // P2.5: cumulative counter via RPC. The previous code overwrote
+    // data_sources.total_records with this single run's event count,
+    // obliterating cumulative history every cron invocation.
+    await supabase.rpc("increment_total_records", {
+      p_source_type: "un_digital_library",
+      p_delta: eventsCreated,
+    });
 
     return new Response(
       JSON.stringify({

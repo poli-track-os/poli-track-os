@@ -6,6 +6,26 @@ import { resolvePoliticalPosition } from '@/lib/political-positioning';
 
 type Politician = Tables<'politicians'>;
 type PoliticalEvent = Tables<'political_events'>;
+const POLITICIANS_PAGE_SIZE = 1000;
+
+export async function fetchAllPoliticianRows<T = Politician>(selectClause = '*') {
+  const rows: T[] = [];
+
+  for (let from = 0; ; from += POLITICIANS_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('politicians')
+      .select(selectClause)
+      .order('id', { ascending: true })
+      .range(from, from + POLITICIANS_PAGE_SIZE - 1);
+    if (error) throw error;
+
+    const chunk = (data || []) as T[];
+    rows.push(...chunk);
+    if (chunk.length < POLITICIANS_PAGE_SIZE) break;
+  }
+
+  return rows;
+}
 
 export function mapPoliticianToActor(p: Politician): Actor {
   return {
@@ -66,12 +86,10 @@ export function usePoliticians() {
   return useQuery({
     queryKey: ['politicians'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('politicians')
-        .select('*')
-        .order('name');
-      if (error) throw error;
-      return (data || []).map(mapPoliticianToActor);
+      const data = await fetchAllPoliticianRows<Politician>('*');
+      return data
+        .map(mapPoliticianToActor)
+        .sort((left, right) => left.name.localeCompare(right.name));
     },
   });
 }
@@ -173,21 +191,36 @@ export function usePoliticianPosition(politicianId: string | undefined) {
     queryKey: ['politician-position', politicianId],
     queryFn: async () => {
       if (!politicianId) return null;
+      // Order by updated_at desc + limit(1) so a row history (or a
+      // schema relaxation that allowed multiple rows) doesn't crash the
+      // hook with `JSON object requested, multiple (or no) rows returned`.
+      // Also include `name` in the join so the returned shape matches
+      // useAllPositions().
       const { data, error } = await supabase
         .from('politician_positions')
-        .select('*, politicians!inner(party_name, party_abbreviation, country_code)')
+        .select('*, politicians!inner(name, party_name, party_abbreviation, country_code)')
         .eq('politician_id', politicianId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
 
       const politician = (data as any).politicians;
-      return resolvePoliticalPosition(
-        data as any,
-        politician?.party_name,
-        politician?.party_abbreviation,
-        politician?.country_code,
-      );
+      return {
+        ...resolvePoliticalPosition(
+          data as any,
+          politician?.party_name,
+          politician?.party_abbreviation,
+          politician?.country_code,
+        ),
+        // Match useAllPositions shape so consumers can compose the two.
+        politician_id: politicianId,
+        name: politician?.name,
+        party: politician?.party_abbreviation,
+        partyName: politician?.party_name,
+        country: politician?.country_code,
+      };
     },
     enabled: !!politicianId,
   });
@@ -304,19 +337,23 @@ export function usePoliticianAssociates(politicianId: string | undefined) {
 }
 
 export function usePoliticiansByCountry(countryCode: string | undefined) {
+  // Normalize the cache key by uppercasing the country code. Without
+  // this, `/country/de` and `/country/DE` produce two separate cache
+  // entries (and two separate fetches) for identical results.
+  const normalized = countryCode?.toUpperCase();
   return useQuery({
-    queryKey: ['politicians-by-country', countryCode],
+    queryKey: ['politicians-by-country', normalized],
     queryFn: async () => {
-      if (!countryCode) return [];
+      if (!normalized) return [];
       const { data, error } = await supabase
         .from('politicians')
         .select('*')
-        .eq('country_code', countryCode.toUpperCase())
+        .eq('country_code', normalized)
         .order('name');
       if (error) throw error;
       return (data || []).map(mapPoliticianToActor);
     },
-    enabled: !!countryCode,
+    enabled: !!normalized,
   });
 }
 
@@ -324,13 +361,12 @@ export function useCountryStats() {
   return useQuery({
     queryKey: ['country-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('politicians')
-        .select('country_code, country_name, continent, party_name');
-      if (error) throw error;
+      const data = await fetchAllPoliticianRows<Pick<Politician, 'country_code' | 'country_name' | 'continent' | 'party_name'>>(
+        'country_code, country_name, continent, party_name',
+      );
       
       const countries = new Map<string, { code: string; name: string; continent: string; actorCount: number; parties: Set<string> }>();
-      for (const p of data || []) {
+      for (const p of data) {
         const existing = countries.get(p.country_code) || {
           code: p.country_code,
           name: p.country_name,
@@ -343,11 +379,13 @@ export function useCountryStats() {
         countries.set(p.country_code, existing);
       }
       
-      return Array.from(countries.values()).map(c => ({
-        ...c,
-        partyCount: c.parties.size,
-        parties: Array.from(c.parties),
-      }));
+      return Array.from(countries.values())
+        .map(c => ({
+          ...c,
+          partyCount: c.parties.size,
+          parties: Array.from(c.parties),
+        }))
+        .sort((left, right) => right.actorCount - left.actorCount || left.name.localeCompare(right.name));
     },
   });
 }

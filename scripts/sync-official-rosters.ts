@@ -7,12 +7,19 @@ import { createClient } from '@supabase/supabase-js';
 import {
   extractPortugalCurrentLegislatureUrl,
   extractPortugalRegistryJsonUrl,
-  normalizeNameForMatch,
   parseBundestagMembersXml,
   parsePortugalBiographicalRegistryJson,
   parsePortugalAssemblyRoster,
   type OfficialRosterRecord,
 } from '../src/lib/official-rosters.ts';
+import {
+  buildMatchIndexes,
+  buildMutationPlan,
+  getMatch,
+  SYNC_SOURCE_TYPE,
+  type ExistingPoliticianRow,
+  type MutationPlan,
+} from '../src/lib/official-roster-sync-helpers.ts';
 
 type Args = {
   apply: boolean;
@@ -20,34 +27,9 @@ type Args = {
   expectProjectRef: string | null;
 };
 
-type ExistingPoliticianRow = {
-  id: string;
-  country_code: string;
-  country_name: string;
-  data_source: string | null;
-  external_id: string | null;
-  in_office_since: string | null;
-  jurisdiction: string | null;
-  name: string;
-  party_abbreviation: string | null;
-  party_name: string | null;
-  role: string | null;
-  source_attribution: Record<string, unknown> | null;
-  source_url: string | null;
-};
-
-type MutationPlan = {
-  action: 'insert' | 'update';
-  politicianId: string | null;
-  record: OfficialRosterRecord;
-  payload: Record<string, unknown>;
-  changedFields: string[];
-  matchedBy: 'external_id' | 'source_attribution' | 'name' | 'none';
-};
-
 const SUPPORTED_COUNTRIES = ['DE', 'PT'] as const;
 const DEFAULT_COUNTRIES = [...SUPPORTED_COUNTRIES];
-const SOURCE_TYPE = 'official_record';
+const SOURCE_TYPE = SYNC_SOURCE_TYPE;
 
 function printHelp() {
   console.log(`Usage:
@@ -265,10 +247,15 @@ async function loadPoliticiansForCountry(supabase: ReturnType<typeof createClien
   const pageSize = 1000;
 
   for (let offset = 0; ; offset += pageSize) {
+    // Order by created_at ASC so that if two rows ever share the same
+    // external_id (possible only before the unique index in migration
+    // 20260412200000 is applied), `find()` resolves to the OLDEST row
+    // deterministically. UUID order would resolve at random.
     const { data, error } = await supabase
       .from('politicians')
-      .select('id, country_code, country_name, data_source, external_id, in_office_since, jurisdiction, name, party_abbreviation, party_name, role, source_attribution, source_url')
+      .select('id, biography, birth_year, committees, country_code, country_name, data_source, enriched_at, external_id, in_office_since, jurisdiction, name, party_abbreviation, party_name, photo_url, role, source_attribution, source_url, twitter_handle')
       .eq('country_code', countryCode)
+      .order('created_at', { ascending: true })
       .order('id', { ascending: true })
       .range(offset, offset + pageSize - 1);
 
@@ -283,159 +270,11 @@ async function loadPoliticiansForCountry(supabase: ReturnType<typeof createClien
   return rows;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function getSourceRecordId(sourceAttribution: Record<string, unknown> | null | undefined) {
-  const officialBlock = sourceAttribution?._official_record;
-  if (!isRecord(officialBlock)) return null;
-  return typeof officialBlock.record_id === 'string' ? officialBlock.record_id : null;
-}
-
-function buildSourceAttribution(
-  existing: Record<string, unknown> | null | undefined,
-  record: OfficialRosterRecord,
-  fieldNames: string[],
-) {
-  const next: Record<string, unknown> = isRecord(existing) ? structuredClone(existing) : {};
-  const fetchedAt = new Date().toISOString();
-  const sourceMeta = {
-    source_type: SOURCE_TYPE,
-    source_label: record.sourceLabel,
-    source_url: record.sourceUrl,
-    dataset_url: record.datasetUrl,
-    record_id: record.recordId,
-    fetched_at: fetchedAt,
-  };
-
-  next._official_record = {
-    ...sourceMeta,
-    alternate_names: record.alternateNames,
-    constituency: record.constituency,
-    country_code: record.countryCode,
-    country_name: record.countryName,
-    role: record.role,
-  };
-
-  for (const fieldName of fieldNames) {
-    next[fieldName] = sourceMeta;
-  }
-
-  return next;
-}
-
-function buildNameIndexes(rows: ExistingPoliticianRow[]) {
-  const byName = new Map<string, ExistingPoliticianRow[]>();
-  for (const row of rows) {
-    const key = normalizeNameForMatch(row.name);
-    const bucket = byName.get(key);
-    if (bucket) bucket.push(row);
-    else byName.set(key, [row]);
-  }
-  return byName;
-}
-
-function getMatch(rowSet: ExistingPoliticianRow[], record: OfficialRosterRecord) {
-  const byName = buildNameIndexes(rowSet);
-
-  const byExternalId = rowSet.find((row) => row.external_id === record.recordId);
-  if (byExternalId) return { row: byExternalId, matchedBy: 'external_id' as const };
-
-  const bySourceAttribution = rowSet.find((row) => getSourceRecordId(row.source_attribution) === record.recordId);
-  if (bySourceAttribution) return { row: bySourceAttribution, matchedBy: 'source_attribution' as const };
-
-  const candidateNames = [...new Set([record.name, ...record.alternateNames].map((value) => normalizeNameForMatch(value)).filter(Boolean))];
-  const matchingRows = new Map<string, ExistingPoliticianRow>();
-  for (const candidateName of candidateNames) {
-    const matchesByName = byName.get(candidateName) || [];
-    for (const match of matchesByName) {
-      matchingRows.set(match.id, match);
-    }
-  }
-
-  if (matchingRows.size === 1) {
-    return { row: [...matchingRows.values()][0], matchedBy: 'name' as const };
-  }
-
-  return { row: null, matchedBy: 'none' as const };
-}
-
-function buildMutationPlan(existing: ExistingPoliticianRow | null, record: OfficialRosterRecord, matchedBy: MutationPlan['matchedBy']): MutationPlan {
-  const changedFields: string[] = [];
-  const payload: Record<string, unknown> = {};
-
-  const assignIfDifferent = (field: string, nextValue: unknown) => {
-    if (nextValue === null || nextValue === undefined || nextValue === '') return;
-    const currentValue = existing ? (existing as Record<string, unknown>)[field] ?? null : null;
-    if (currentValue !== nextValue) {
-      payload[field] = nextValue;
-      changedFields.push(field);
-    }
-  };
-
-  assignIfDifferent('name', record.name);
-  assignIfDifferent('party_abbreviation', record.partyAbbreviation);
-  assignIfDifferent('party_name', record.partyName);
-  assignIfDifferent('role', record.role);
-  assignIfDifferent('jurisdiction', record.jurisdiction);
-  assignIfDifferent('source_url', record.sourceUrl);
-  assignIfDifferent('data_source', SOURCE_TYPE);
-  assignIfDifferent('in_office_since', record.inOfficeSince);
-
-  if (!existing?.external_id) {
-    payload.external_id = record.recordId;
-    changedFields.push('external_id');
-  }
-
-  const attributionFields = [
-    'name',
-    'party_abbreviation',
-    'party_name',
-    'role',
-    'jurisdiction',
-    'source_url',
-  ];
-  if (record.inOfficeSince) attributionFields.push('in_office_since');
-  if (!existing?.external_id) attributionFields.push('external_id');
-
-  payload.source_attribution = buildSourceAttribution(existing?.source_attribution, record, attributionFields);
-  changedFields.push('source_attribution');
-
-  if (!existing) {
-    return {
-      action: 'insert',
-      politicianId: null,
-      record,
-      payload: {
-        continent: 'Europe',
-        country_code: record.countryCode,
-        country_name: record.countryName,
-        data_source: SOURCE_TYPE,
-        external_id: record.recordId,
-        in_office_since: record.inOfficeSince,
-        jurisdiction: record.jurisdiction,
-        name: record.name,
-        party_abbreviation: record.partyAbbreviation,
-        party_name: record.partyName,
-        role: record.role,
-        source_attribution: payload.source_attribution,
-        source_url: record.sourceUrl,
-      },
-      changedFields,
-      matchedBy,
-    };
-  }
-
-  return {
-    action: 'update',
-    politicianId: existing.id,
-    record,
-    payload,
-    changedFields,
-    matchedBy,
-  };
-}
+// Pure helpers (buildMutationPlan, buildMatchIndexes, getMatch,
+// buildNameIndexes, isRecord, getSourceRecordId, buildSourceAttribution,
+// ExistingPoliticianRow, MutationPlan) are imported from
+// `src/lib/official-roster-sync-helpers.ts`. They live there so vitest
+// can verify them without typechecking the CLI's Supabase client.
 
 async function ensureRunLog(supabase: ReturnType<typeof createClient>) {
   const { data, error } = await supabase
@@ -483,10 +322,18 @@ async function applyPlans(
   let inserted = 0;
   let updated = 0;
 
+  // Use upsert with onConflict: 'external_id' so that if another ingester
+  // raced us and created the same row between snapshot and apply, we
+  // gracefully UPDATE that row instead of erroring with 23505. Without
+  // this, a concurrent enrichment run would reject the entire 100-row
+  // chunk.
   for (let index = 0; index < inserts.length; index += 100) {
     const chunk = inserts.slice(index, index + 100).map((plan) => plan.payload);
     if (chunk.length === 0) continue;
-    const { data, error } = await supabase.from('politicians').insert(chunk).select('id');
+    const { data, error } = await supabase
+      .from('politicians')
+      .upsert(chunk, { onConflict: 'external_id' })
+      .select('id');
     if (error) throw error;
     inserted += data?.length || 0;
   }
@@ -531,8 +378,12 @@ async function main() {
     const plans: MutationPlan[] = [];
     for (const countryCode of args.countries) {
       const rows = existingByCountry.get(countryCode) || [];
+      // Hoisted: build indexes ONCE per country, not per record.
+      // The previous version called buildNameIndexes inside getMatch on
+      // every iteration, doing ~1000² normalizations per country.
+      const indexes = buildMatchIndexes(rows);
       for (const record of fetchedByCountry.get(countryCode) || []) {
-        const { row, matchedBy } = getMatch(rows, record);
+        const { row, matchedBy } = getMatch(indexes, record);
         plans.push(buildMutationPlan(row, record, matchedBy));
       }
     }

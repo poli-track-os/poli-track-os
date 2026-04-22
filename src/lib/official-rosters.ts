@@ -1,5 +1,8 @@
 export interface OfficialRosterRecord {
   alternateNames: string[];
+  biography: string | null;
+  birthYear: number | null;
+  committees: string[];
   countryCode: string;
   countryName: string;
   role: string;
@@ -9,10 +12,12 @@ export interface OfficialRosterRecord {
   sourceUrl: string;
   datasetUrl: string;
   name: string;
+  photoUrl: string | null;
   partyAbbreviation: string | null;
   partyName: string | null;
   constituency: string | null;
   inOfficeSince: string | null;
+  twitterHandle: string | null;
 }
 
 const PORTUGAL_ROSTER_URL = 'https://www.parlamento.pt/DeputadoGP/Paginas/Deputados_ef.aspx';
@@ -114,6 +119,14 @@ function parseIsoDate(value: string | null | undefined) {
   return cleaned;
 }
 
+function parseBirthYear(value: string | null | undefined) {
+  const germanDate = parseGermanDate(value);
+  if (germanDate) return Number.parseInt(germanDate.slice(0, 4), 10);
+  const isoDate = parseIsoDate(value);
+  if (isoDate) return Number.parseInt(isoDate.slice(0, 4), 10);
+  return null;
+}
+
 function getSingleTag(block: string, tagName: string) {
   const match = block.match(new RegExp(`<${tagName}>([\\s\\S]*?)</${tagName}>`));
   return normalizeDisplayText(match?.[1] ?? '');
@@ -158,6 +171,42 @@ function extractCurrentFaction(periodBlock: string) {
     }
   }
   return '';
+}
+
+function collectBundestagCommittees(periodBlock: string) {
+  const institutions = getTagBlocks(periodBlock, 'INSTITUTION');
+  const committees = new Set<string>();
+  for (const institution of institutions) {
+    const institutionType = getSingleTag(institution, 'INSART_LANG').toLowerCase();
+    if (!institutionType.includes('ausschuss') && !institutionType.includes('committee')) continue;
+    const label = getSingleTag(institution, 'INS_LANG');
+    if (label) committees.add(label);
+  }
+  return [...committees];
+}
+
+function buildBundestagBiography(
+  block: string,
+  role: string,
+  countryName: string,
+  partyName: string | null,
+  partyAbbreviation: string | null,
+  constituency: string | null,
+) {
+  const vita = normalizeDisplayText(getSingleTag(block, 'VITA_KURZ'));
+  if (vita) return vita;
+
+  const occupation = normalizeDisplayText(getSingleTag(block, 'BERUF'));
+  const party = partyName || partyAbbreviation;
+  const parts = [
+    `${role} from ${countryName}`,
+    party ? `for ${party}` : null,
+    constituency ? `representing ${constituency}` : null,
+    occupation ? `with a professional background as ${occupation}` : null,
+  ].filter((value): value is string => Boolean(value));
+
+  if (parts.length === 0) return null;
+  return `${parts.join(', ')}.`;
 }
 
 export function normalizeNameForMatch(value: string) {
@@ -239,6 +288,9 @@ export function parsePortugalAssemblyRoster(html: string): OfficialRosterRecord[
 
     records.push({
       alternateNames: [name],
+      biography: null,
+      birthYear: null,
+      committees: [],
       countryCode: 'PT',
       countryName: 'Portugal',
       role: 'Member of Parliament',
@@ -248,10 +300,12 @@ export function parsePortugalAssemblyRoster(html: string): OfficialRosterRecord[
       sourceUrl: new URL(rawHref, PORTUGAL_ROSTER_URL).toString(),
       datasetUrl: PORTUGAL_ROSTER_URL,
       name,
+      photoUrl: null,
       partyAbbreviation: abbreviation,
       partyName,
       constituency,
       inOfficeSince: null,
+      twitterHandle: null,
     });
   }
 
@@ -270,9 +324,38 @@ type PortugalDeputyLegislature = {
 };
 
 type PortugalDeputyRecord = {
+  CadActividadeOrgaos?: {
+    actividadeCom?: Array<{
+      cargoDes?: string | null;
+      legDes?: string | null;
+      orgDes?: string | null;
+      timDes?: string | null;
+    }> | null;
+    actividadeGT?: Array<{
+      cargoDes?: string | null;
+      legDes?: string | null;
+      orgDes?: string | null;
+      timDes?: string | null;
+    }> | null;
+    actividadeSCom?: Array<{
+      cargoDes?: string | null;
+      legDes?: string | null;
+      orgDes?: string | null;
+      timDes?: string | null;
+    }> | null;
+  } | null;
+  CadCargosFuncoes?: Array<{
+    FunDes?: string | null;
+    FunOrdem?: number | null;
+  }> | null;
   CadDeputadoLegis?: PortugalDeputyLegislature[] | null;
+  CadDtNascimento?: string | null;
+  CadHabilitacoes?: Array<{
+    HabDes?: string | null;
+  }> | null;
   CadId?: number | string | null;
   CadNomeCompleto?: string | null;
+  CadProfissao?: string | null;
 };
 
 function pickPortugalLegislature(
@@ -291,6 +374,71 @@ function pickPortugalLegislature(
     const rightRank = parseRomanNumeral(right.LegDes) ?? -1;
     return rightRank - leftRank;
   })[0];
+}
+
+function extractPortugalCommittees(row: PortugalDeputyRecord, currentLegislature: string | null) {
+  const targetLegislature = normalizeDisplayText(currentLegislature);
+  const buckets = [
+    row.CadActividadeOrgaos?.actividadeCom,
+    row.CadActividadeOrgaos?.actividadeGT,
+    row.CadActividadeOrgaos?.actividadeSCom,
+  ];
+  const committees = new Set<string>();
+
+  for (const bucket of buckets) {
+    if (!Array.isArray(bucket)) continue;
+    for (const entry of bucket) {
+      if (!entry) continue;
+      const entryLegislature = normalizeDisplayText(entry.legDes);
+      if (targetLegislature && entryLegislature && entryLegislature !== targetLegislature) continue;
+
+      const org = normalizeDisplayText(entry.orgDes);
+      const role = normalizeDisplayText(entry.timDes || entry.cargoDes);
+      if (!org) continue;
+
+      committees.add(role ? `${org} (${role})` : org);
+    }
+  }
+
+  return [...committees];
+}
+
+function buildPortugalBiography(
+  row: PortugalDeputyRecord,
+  role: string,
+  countryName: string,
+  partyName: string | null,
+  partyAbbreviation: string | null,
+  constituency: string | null,
+) {
+  const profession = normalizeDisplayText(row.CadProfissao);
+  const education = Array.isArray(row.CadHabilitacoes)
+    ? row.CadHabilitacoes
+        .map((entry) => normalizeDisplayText(entry?.HabDes))
+        .filter((value) => value.length > 0)
+        .slice(0, 2)
+    : [];
+  const roles = Array.isArray(row.CadCargosFuncoes)
+    ? [...row.CadCargosFuncoes]
+        .sort((left, right) => (left?.FunOrdem ?? 0) - (right?.FunOrdem ?? 0))
+        .map((entry) => normalizeDisplayText(entry?.FunDes))
+        .filter((value) => value.length > 0)
+        .slice(0, 3)
+    : [];
+  const party = partyName || partyAbbreviation;
+  const sentences: string[] = [];
+
+  const intro = [
+    `${role} from ${countryName}`,
+    party ? `for ${party}` : null,
+    constituency ? `representing ${constituency}` : null,
+  ].filter((value): value is string => Boolean(value));
+  if (intro.length > 0) sentences.push(`${intro.join(', ')}.`);
+  if (profession) sentences.push(`Official Assembly data lists the profession as ${profession}.`);
+  if (education.length > 0) sentences.push(`Education includes ${education.join('; ')}.`);
+  if (roles.length > 0) sentences.push(`Past or current roles include ${roles.join('; ')}.`);
+
+  return sentences.length > 0 ? sentences.join(' ') : null;
 }
 
 export function parsePortugalBiographicalRegistryJson(
@@ -314,6 +462,16 @@ export function parsePortugalBiographicalRegistryJson(
 
     records.push({
       alternateNames,
+      biography: buildPortugalBiography(
+        row,
+        'Member of Parliament',
+        'Portugal',
+        partyName,
+        partyAbbreviation,
+        normalizeDisplayText(legislature.CeDes) || null,
+      ),
+      birthYear: parseBirthYear(row.CadDtNascimento),
+      committees: extractPortugalCommittees(row, currentLegislature),
       countryCode: 'PT',
       countryName: 'Portugal',
       role: 'Member of Parliament',
@@ -323,10 +481,12 @@ export function parsePortugalBiographicalRegistryJson(
       sourceUrl: `https://www.parlamento.pt/DeputadoGP/Paginas/Biografia.aspx?BID=${encodeURIComponent(deputyId)}`,
       datasetUrl: PORTUGAL_OPEN_DATA_ROOT_URL,
       name: displayName,
+      photoUrl: null,
       partyAbbreviation,
       partyName,
       constituency: normalizeDisplayText(legislature.CeDes) || null,
       inOfficeSince: parseIsoDate(legislature.IndData),
+      twitterHandle: null,
     });
   }
 
@@ -374,6 +534,16 @@ export function parseBundestagMembersXml(xml: string, referenceDate = new Date()
 
     records.push({
       alternateNames: [name],
+      biography: buildBundestagBiography(
+        block,
+        'Member of Bundestag',
+        'Germany',
+        partyName,
+        abbreviation,
+        constituency,
+      ),
+      birthYear: parseBirthYear(getSingleTag(block, 'GEBURTSDATUM')),
+      committees: collectBundestagCommittees(currentPeriod),
       countryCode: 'DE',
       countryName: 'Germany',
       role: 'Member of Bundestag',
@@ -383,10 +553,12 @@ export function parseBundestagMembersXml(xml: string, referenceDate = new Date()
       sourceUrl: GERMANY_SOURCE_URL,
       datasetUrl: GERMANY_DATASET_URL,
       name,
+      photoUrl: null,
       partyAbbreviation: abbreviation,
       partyName,
       constituency,
       inOfficeSince,
+      twitterHandle: null,
     });
   }
 

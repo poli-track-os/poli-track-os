@@ -10,6 +10,7 @@ import { useCountryStats, usePoliticiansByCountry } from '@/hooks/use-politician
 import { useProposalsByCountry } from '@/hooks/use-proposals';
 import { normalizePersonName } from '@/lib/country-leadership';
 import { formatTimestampLabel } from '@/lib/date-display';
+import { buildCountryRoute, buildInternalPersonRoute } from '@/lib/internal-links';
 import { buildPartyDescription, getTopCommittees, slugifyPartyName } from '@/lib/party-summary';
 
 const PartyDetail = () => {
@@ -19,6 +20,7 @@ const PartyDetail = () => {
   const { data: countryStats = [] } = useCountryStats();
   const country = countryStats.find((entry) => entry.code === countryCode);
   const countryName = country?.name || actors[0]?.canton || countryCode || 'Unknown';
+  const countryRoute = buildCountryRoute(countryId) || '/explore';
   const { data: metadata } = useCountryMetadata(countryCode, countryName !== countryCode ? countryName : undefined);
   const metadataUpdatedAt = metadata?.sourceUpdatedAt || metadata?.databaseUpdatedAt;
   const { data: proposals = [] } = useProposalsByCountry(countryCode);
@@ -46,7 +48,8 @@ const PartyDetail = () => {
     const actor = actorsByNormalizedName.get(normalizePersonName(leader.name));
     return {
       name: leader.name,
-      href: actor ? `/actors/${actor.id}` : leader.url,
+      href: buildInternalPersonRoute({ actorId: actor?.id, personName: leader.name, countryCode }),
+      sourceUrl: leader.url,
     };
   });
 
@@ -68,7 +71,7 @@ const PartyDetail = () => {
         <SiteHeader />
         <main className="container flex-1 py-8 max-w-4xl">
           <p className="font-mono text-sm text-muted-foreground">Party not found for this country.</p>
-          <Link to={`/country/${countryId}`} className="text-accent underline text-sm mt-2 inline-block">
+          <Link to={countryRoute} className="text-accent underline text-sm mt-2 inline-block">
             ← Back to country
           </Link>
         </main>
@@ -81,7 +84,7 @@ const PartyDetail = () => {
     <div className="min-h-screen flex flex-col">
       <SiteHeader />
       <main className="container flex-1 py-8 max-w-4xl">
-        <Link to={`/country/${countryId}`} className="text-accent underline text-xs font-mono mb-4 inline-block">
+        <Link to={countryRoute} className="text-accent underline text-xs font-mono mb-4 inline-block">
           ← {countryCode} COUNTRY PAGE
         </Link>
 
@@ -95,7 +98,9 @@ const PartyDetail = () => {
               </div>
               <h1 className="text-2xl font-extrabold tracking-tight">{partyName}</h1>
               <p className="text-xs font-mono text-muted-foreground mt-1 uppercase tracking-wide">
-                {countryName}
+                <Link to={countryRoute} className="hover:text-accent">
+                  {countryName}
+                </Link>
               </p>
               {partyMetadata?.description && (
                 <p className="text-xs font-mono text-muted-foreground mt-2 uppercase tracking-wide">
@@ -133,7 +138,11 @@ const PartyDetail = () => {
               {leaderLinks.length > 0 && (
                 <p className="text-sm font-mono text-muted-foreground mt-3">
                   {leaderLinks.length === 1 ? 'Leader' : 'Leaders'}:{' '}
-                  <LinkedPersonTextList people={leaderLinks} linkAriaLabelPrefix="Party leader" />
+                  <LinkedPersonTextList
+                    people={leaderLinks}
+                    linkAriaLabelPrefix="Party leader"
+                    sourceLinkAriaLabelPrefix="Open source for party leader"
+                  />
                 </p>
               )}
             </div>
@@ -194,7 +203,11 @@ const PartyDetail = () => {
                 <div className="flex items-start justify-between gap-3">
                   <span>{leaderLinks.length === 1 ? 'Leader' : 'Leaders'}</span>
                   <span className="text-foreground font-bold text-right">
-                    <LinkedPersonTextList people={leaderLinks} linkAriaLabelPrefix="Party snapshot leader" />
+                    <LinkedPersonTextList
+                      people={leaderLinks}
+                      linkAriaLabelPrefix="Party snapshot leader"
+                      sourceLinkAriaLabelPrefix="Open source for party snapshot leader"
+                    />
                   </span>
                 </div>
                 {partyMetadata?.politicalPosition && (
@@ -230,7 +243,11 @@ const PartyDetail = () => {
                 )}
                 <div className="flex items-center justify-between gap-3">
                   <span>Country</span>
-                  <span className="text-foreground font-bold">{countryName}</span>
+                  <span className="text-foreground font-bold">
+                    <Link to={countryRoute} className="hover:text-accent">
+                      {countryName}
+                    </Link>
+                  </span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <span>Capital</span>

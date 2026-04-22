@@ -47,24 +47,33 @@ async function loadTrackedCountries(
     return [{ country_code: normalizedRequestedCode, country_name: requestedName.trim() }];
   }
 
-  const { data, error } = await supabase
-    .from("politicians")
-    .select("country_code, country_name")
-    .not("country_code", "is", null)
-    .not("country_name", "is", null)
-    .order("country_code", { ascending: true });
-
-  if (error) throw error;
-
   const unique = new Map<string, { country_code: string; country_name: string }>();
-  for (const row of data || []) {
-    const countryCode = row.country_code?.trim().toUpperCase();
-    const countryName = row.country_name?.trim();
-    if (!countryCode || !countryName) continue;
-    if (normalizedRequestedCode && countryCode !== normalizedRequestedCode) continue;
-    if (!unique.has(countryCode)) {
-      unique.set(countryCode, { country_code: countryCode, country_name: countryName });
+  const pageSize = 1000;
+
+  for (let from = 0; ; from += pageSize) {
+    const to = from + pageSize - 1;
+    const { data, error } = await supabase
+      .from("politicians")
+      .select("country_code, country_name")
+      .not("country_code", "is", null)
+      .not("country_name", "is", null)
+      .order("country_code", { ascending: true })
+      .order("country_name", { ascending: true })
+      .range(from, to);
+
+    if (error) throw error;
+
+    for (const row of data || []) {
+      const countryCode = row.country_code?.trim().toUpperCase();
+      const countryName = row.country_name?.trim();
+      if (!countryCode || !countryName) continue;
+      if (normalizedRequestedCode && countryCode !== normalizedRequestedCode) continue;
+      if (!unique.has(countryCode)) {
+        unique.set(countryCode, { country_code: countryCode, country_name: countryName });
+      }
     }
+
+    if (!data?.length || data.length < pageSize) break;
   }
 
   if (unique.size > 0 || !normalizedRequestedCode) {

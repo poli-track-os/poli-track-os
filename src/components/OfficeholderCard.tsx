@@ -6,40 +6,46 @@ interface OfficeholderCardProps {
   href?: string;
   office: string;
   personName: string;
-  source: 'tracked' | 'wikidata';
+  source: 'tracked' | 'reference';
+  sourceUrl?: string;
 }
 
-const OfficeholderCard = ({ href, office, personName, source }: OfficeholderCardProps) => {
-  const displayName = getDisplayPersonName(personName, href);
-  const inner = (
-    <div className="brutalist-border p-4 bg-card hover:bg-secondary/50 transition-colors h-full">
-      <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-wide">{office}</div>
-      <div className="text-sm font-bold mt-2 flex items-center gap-2">
-        <span>{displayName}</span>
-        {source === 'wikidata' && href && <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />}
-      </div>
-      <div className="text-[10px] font-mono text-muted-foreground mt-2">
-        {source === 'tracked' ? 'Tracked profile' : 'Wikipedia / Wikidata reference'}
-      </div>
-    </div>
+const OfficeholderCard = ({ href, office, personName, source, sourceUrl }: OfficeholderCardProps) => {
+  const displayName = getDisplayPersonName(personName, sourceUrl || href);
+  const linkLabel = `View ${displayName}`;
+  const name = !href ? (
+    <span>{displayName}</span>
+  ) : href.startsWith('/') ? (
+    <Link to={href} aria-label={linkLabel} className="hover:underline">
+      {displayName}
+    </Link>
+  ) : (
+    <a href={href} target="_blank" rel="noopener noreferrer" aria-label={linkLabel} className="hover:underline">
+      {displayName}
+    </a>
   );
 
-  if (!href) {
-    return inner;
-  }
-
-  if (href.startsWith('/')) {
-    return (
-      <Link to={href} aria-label={`View ${displayName}`} className="block">
-        {inner}
-      </Link>
-    );
-  }
-
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`View ${displayName}`} className="block">
-      {inner}
-    </a>
+    <div className="brutalist-border p-4 bg-card hover:bg-secondary/50 transition-colors h-full">
+      <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-wide">{office}</div>
+      <div className="mt-2 flex items-start justify-between gap-3">
+        <div className="text-sm font-bold min-w-0 break-words">{name}</div>
+        {sourceUrl && (
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open officeholder source for ${displayName}`}
+            className="inline-flex shrink-0 items-center justify-center rounded border border-border px-1.5 py-1 text-muted-foreground hover:text-accent hover:border-accent"
+          >
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </div>
+      <div className="text-[10px] font-mono text-muted-foreground mt-2">
+        {source === 'tracked' ? 'Tracked profile' : 'Internal search fallback'}
+      </div>
+    </div>
   );
 };
 

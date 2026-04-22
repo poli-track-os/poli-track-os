@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { committeeKeyFor, type Politician } from "./parsers.ts";
 
 function serializeError(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -30,13 +31,6 @@ const corsHeaders = {
 // graph in the UI a non-empty starting state until richer sources are
 // plugged in (co-sponsored bills, co-authored amendments, etc.).
 
-interface Politician {
-  id: string;
-  country_code: string;
-  party_abbreviation: string | null;
-  party_name: string | null;
-  committees: string[] | null;
-}
 
 async function loadAllPoliticians(
   supabase: ReturnType<typeof createClient>,
@@ -47,7 +41,7 @@ async function loadAllPoliticians(
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await supabase
       .from("politicians")
-      .select("id, country_code, party_abbreviation, party_name, committees")
+      .select("id, country_code, data_source, jurisdiction, party_abbreviation, party_name, committees")
       .order("id", { ascending: true })
       .range(offset, offset + pageSize - 1);
 
@@ -105,8 +99,8 @@ Deno.serve(async (req) => {
         partyIndex.set(partyKey, bucket);
       }
       for (const cm of p.committees || []) {
-        const key = cm.toLowerCase().trim();
-        if (!key) continue;
+        if (!cm || !cm.trim()) continue;
+        const key = committeeKeyFor(p, cm);
         const bucket = committeeIndex.get(key) || [];
         bucket.push(p);
         committeeIndex.set(key, bucket);
@@ -159,14 +153,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    for (const [committee, bucket] of committeeIndex.entries()) {
+    for (const [committeeKey, bucket] of committeeIndex.entries()) {
       if (bucket.length < 2) continue;
+      // Strip the country/eu prefix from the key for the display context.
+      const committeeLabel = committeeKey.includes("|")
+        ? committeeKey.split("|").slice(1).join("|")
+        : committeeKey;
       for (let i = 0; i < bucket.length; i++) {
         const a = bucket[i];
         const limit = Math.min(bucket.length, i + 1 + maxPerPolitician);
         for (let j = i + 1; j < limit; j++) {
           const b = bucket[j];
-          addPair(a, b, "committee_colleague", committeeStrength, `Shared committee: ${committee}`);
+          addPair(a, b, "committee_colleague", committeeStrength, `Shared committee: ${committeeLabel}`);
         }
       }
     }

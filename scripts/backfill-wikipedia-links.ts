@@ -2,6 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
+import {
+  buildHydrationPlan,
+  type HydrationPlan,
+  type PoliticianRow,
+  type WikiSummary,
+} from '../src/lib/wikipedia-hydration-helpers.ts';
 
 type Args = {
   apply: boolean;
@@ -9,37 +15,6 @@ type Args = {
   concurrency: number;
   expectProjectRef: string | null;
   limit: number | null;
-};
-
-type PoliticianRow = {
-  id: string;
-  name: string;
-  source_url: string | null;
-  wikipedia_url: string | null;
-  wikipedia_summary: string | null;
-  biography: string | null;
-  wikipedia_image_url: string | null;
-  wikipedia_data: Record<string, unknown> | null;
-  enriched_at: string | null;
-  photo_url: string | null;
-  source_attribution: Record<string, unknown> | null;
-};
-
-type HydrationPlan = {
-  politicianId: string;
-  name: string;
-  wikipediaUrl: string;
-  changedFields: string[];
-  payload: Record<string, unknown>;
-};
-
-type WikiSummary = {
-  title?: string;
-  extract?: string;
-  description?: string;
-  originalimage?: { source?: string };
-  thumbnail?: { source?: string };
-  content_urls?: { desktop?: { page?: string } };
 };
 
 const DEFAULT_BATCH_SIZE = 500;
@@ -229,10 +204,22 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Serialize the throttle gate via a chained promise so concurrent tasks
+// honour the rate limit even when one of them is in a Retry-After backoff.
+//
+// The fix vs the previous version: the schedule callback now ALWAYS reads
+// the latest `nextAllowedAt` immediately before computing its own gate,
+// which means a 429-handler (which mutates `nextAllowedAt` to push the
+// wait further out) is reflected in every subsequent waiting task. Prior
+// implementations could let multiple in-flight tasks burst-fire once the
+// first 429 wait elapsed, triggering a 429 cascade.
 async function waitForThrottle() {
   const scheduled = throttleChain.then(async () => {
-    const now = Date.now();
-    if (now < nextAllowedAt) {
+    // Loop in case a sibling task pushed nextAllowedAt forward while we
+    // were sleeping (e.g. our sibling hit a 429 mid-wait).
+    while (true) {
+      const now = Date.now();
+      if (now >= nextAllowedAt) break;
       await sleep(nextAllowedAt - now);
     }
     nextAllowedAt = Date.now() + 150;
@@ -289,101 +276,9 @@ async function fetchWikipediaSummary(title: string) {
   return { url, error: 'Retry limit exceeded' } as const;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function buildSourceAttribution(
-  existing: Record<string, unknown> | null | undefined,
-  wikipediaUrl: string,
-  datasetUrl: string,
-  title: string,
-  fieldNames: string[],
-) {
-  const next: Record<string, unknown> = isRecord(existing) ? structuredClone(existing) : {};
-  const fetchedAt = new Date().toISOString();
-  const sourceMeta = {
-    source_type: SOURCE_TYPE,
-    source_label: SOURCE_LABEL,
-    source_url: wikipediaUrl,
-    dataset_url: datasetUrl,
-    record_id: `wikipedia:${title}`,
-    fetched_at: fetchedAt,
-  };
-
-  next._wikipedia_summary = {
-    ...sourceMeta,
-    title,
-  };
-
-  for (const fieldName of fieldNames) {
-    next[fieldName] = sourceMeta;
-  }
-
-  return next;
-}
-
-function buildHydrationPlan(
-  row: PoliticianRow,
-  wikipediaUrl: string,
-  datasetUrl: string,
-  title: string,
-  summary: WikiSummary,
-): HydrationPlan | null {
-  const payload: Record<string, unknown> = {};
-  const changedFields: string[] = [];
-  const canonicalUrl = summary.content_urls?.desktop?.page || wikipediaUrl;
-  const imageUrl = summary.originalimage?.source || summary.thumbnail?.source || null;
-  const extract = summary.extract?.trim() || null;
-  const description = summary.description?.trim() || null;
-
-  const assignIfDifferent = (field: keyof PoliticianRow | 'wikipedia_data', nextValue: unknown) => {
-    if (nextValue === null || nextValue === undefined || nextValue === '') return;
-    const currentValue = field === 'wikipedia_data' ? row.wikipedia_data : row[field];
-    if (JSON.stringify(currentValue ?? null) !== JSON.stringify(nextValue)) {
-      payload[field] = nextValue;
-      changedFields.push(field);
-    }
-  };
-
-  assignIfDifferent('wikipedia_url', canonicalUrl);
-  if (!row.wikipedia_summary && extract) assignIfDifferent('wikipedia_summary', extract);
-  if (!row.biography && extract) assignIfDifferent('biography', extract);
-  if (!row.wikipedia_image_url && imageUrl) assignIfDifferent('wikipedia_image_url', imageUrl);
-  if (!row.photo_url && imageUrl) assignIfDifferent('photo_url', imageUrl);
-
-  const nextWikipediaData = {
-    ...(isRecord(row.wikipedia_data) ? row.wikipedia_data : {}),
-    title: summary.title || title,
-    description,
-    last_fetched: new Date().toISOString(),
-  };
-  assignIfDifferent('wikipedia_data', nextWikipediaData);
-
-  if (!row.enriched_at) {
-    payload.enriched_at = new Date().toISOString();
-    changedFields.push('enriched_at');
-  }
-
-  if (changedFields.length === 0) return null;
-
-  payload.source_attribution = buildSourceAttribution(
-    row.source_attribution,
-    canonicalUrl,
-    datasetUrl,
-    title,
-    [...changedFields, 'source_attribution'],
-  );
-  changedFields.push('source_attribution');
-
-  return {
-    politicianId: row.id,
-    name: row.name,
-    wikipediaUrl: canonicalUrl,
-    changedFields,
-    payload,
-  };
-}
+// `buildHydrationPlan`, `buildSourceAttribution`, `isRecord`, and the
+// PoliticianRow/HydrationPlan/WikiSummary types are imported from
+// `src/lib/wikipedia-hydration-helpers.ts`.
 
 async function ensureRunLog(supabase: ReturnType<typeof createClient>) {
   const { data, error } = await supabase
@@ -425,6 +320,23 @@ async function loadCandidates(
   batchSize: number,
   limit: number | null,
 ) {
+  // Push needsHydration into Postgres so we don't move ~80MB across the
+  // wire on every run. needsHydration requires:
+  //   - the row HAS some kind of Wikipedia URL (wikipedia_url OR
+  //     source_url with /wiki/ in it), AND
+  //   - it is missing enriched_at OR wikipedia_summary OR biography.
+  //
+  // The OR chain below selects rows that:
+  //   1. have wikipedia_url set, OR
+  //   2. have a source_url that points at en.wikipedia.org/wiki/.
+  //
+  // We then narrow on the missing-fields side. We still call
+  // needsHydration() on the client side as a safety net to handle the
+  // exact "wikipedia.org/wiki/" substring requirement.
+  //
+  // Order by created_at ASC so `--limit N` consistently selects the
+  // SAME N oldest unenriched rows across dry-run/apply, instead of
+  // a random-UUID-order sample.
   const filtered: PoliticianRow[] = [];
   const pageSize = Math.max(batchSize, 250);
 
@@ -432,6 +344,9 @@ async function loadCandidates(
     const { data, error } = await supabase
       .from('politicians')
       .select('id, name, source_url, wikipedia_url, wikipedia_summary, biography, wikipedia_image_url, wikipedia_data, enriched_at, photo_url, source_attribution')
+      .or('wikipedia_url.not.is.null,source_url.ilike.%wikipedia.org/wiki/%')
+      .or('enriched_at.is.null,wikipedia_summary.is.null,biography.is.null')
+      .order('created_at', { ascending: true })
       .order('id', { ascending: true })
       .range(offset, offset + pageSize - 1);
 

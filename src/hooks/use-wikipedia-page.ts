@@ -42,15 +42,20 @@ async function fetchWikipediaSummary(title: string) {
 }
 
 export function useWikipediaPageSummary(wikipediaUrl: string | undefined, enabled = true) {
+  // Cache key is the CANONICAL Wikipedia title, not the raw URL. URL
+  // variations (`Angela_Merkel` vs `Angela%20Merkel` vs URLs with
+  // trailing query strings) all resolve to the same title and must
+  // share a single cache entry. The previous version cached separately
+  // for every URL string variation, multiplying network calls.
   const title = deriveNameFromWikipediaUrl(wikipediaUrl);
 
   return useQuery({
-    queryKey: ['wikipedia-page-summary', wikipediaUrl],
+    queryKey: ['wikipedia-page-summary', title ?? null],
     queryFn: async () => {
       if (!title) return null;
       return fetchWikipediaSummary(title);
     },
-    enabled: Boolean(enabled && wikipediaUrl && title),
+    enabled: Boolean(enabled && title),
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 6,
     retry: 1,

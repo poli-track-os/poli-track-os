@@ -79,12 +79,15 @@ async function loadStoredCountryMetadata(countryCode: string) {
 export type { CountryMetadata };
 
 export function useCountryMetadata(countryCode: string | undefined, countryName: string | undefined) {
+  // Normalize the country code for the cache key so `/country/de` and
+  // `/country/DE` share a single cache entry. countryName is intentionally
+  // NOT in the key — it can change between renders (loading vs loaded
+  // states) without warranting a refetch.
+  const normalizedCountryCode = countryCode?.toUpperCase();
   return useQuery({
-    queryKey: ['country-metadata', countryCode, countryName],
+    queryKey: ['country-metadata', normalizedCountryCode],
     queryFn: async () => {
-      if (!countryCode || !countryName) return null;
-
-      const normalizedCountryCode = countryCode.toUpperCase();
+      if (!normalizedCountryCode || !countryName) return null;
       let stored: CountryMetadata | null = null;
 
       try {
@@ -110,7 +113,7 @@ export function useCountryMetadata(countryCode: string | undefined, countryName:
         } satisfies CountryMetadata;
       }
     },
-    enabled: Boolean(countryCode && countryName),
+    enabled: Boolean(normalizedCountryCode && countryName),
     staleTime: 1000 * 60 * 60 * 24,
     gcTime: 1000 * 60 * 60 * 24,
   });

@@ -174,7 +174,16 @@ const ActorTimeline = ({ events }: Props) => {
                 {event.sourceHandle && (
                   <span className="text-sky-600 dark:text-sky-400">{event.sourceHandle}</span>
                 )}
-                {event.sourceUrl && <a href={event.sourceUrl} className="text-accent underline">source →</a>}
+                {event.sourceUrl && (
+                  <a
+                    href={event.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent underline"
+                  >
+                    source →
+                  </a>
+                )}
               </div>
             </div>
           </div>

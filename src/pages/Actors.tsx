@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
@@ -6,8 +7,40 @@ import ActorCard from '@/components/ActorCard';
 import { usePoliticians } from '@/hooks/use-politicians';
 
 const Actors = () => {
-  const [countryFilter, setCountryFilter] = useState<string>('all');
-  const [query, setQuery] = useState('');
+  // URL-sync the filter state so refreshing the page or sharing the URL
+  // preserves the active country and search query. The Proposals page
+  // already does this; Actors didn't.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const countryFilter = searchParams.get('country') || 'all';
+  const query = searchParams.get('q') || '';
+  const setCountryFilter = useCallback(
+    (next: string) => {
+      setSearchParams(
+        (prev) => {
+          const params = new URLSearchParams(prev);
+          if (next === 'all') params.delete('country');
+          else params.set('country', next);
+          return params;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+  const setQuery = useCallback(
+    (next: string) => {
+      setSearchParams(
+        (prev) => {
+          const params = new URLSearchParams(prev);
+          if (!next) params.delete('q');
+          else params.set('q', next);
+          return params;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
   const { data: actors = [], isLoading } = usePoliticians();
 
   const countryFiltered = countryFilter === 'all'

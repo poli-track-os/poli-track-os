@@ -183,8 +183,10 @@ describe('PartyDetail page', () => {
     expect(screen.getByText('Berlin')).toBeInTheDocument();
     expect(screen.getAllByText('Digital Sovereignty Act').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Party leader Ada Lovelace' })).toHaveAttribute('href', '/actors/actor-1');
+    expect(screen.getByRole('link', { name: 'Open source for party leader Ada Lovelace' })).toHaveAttribute('href', 'https://en.wikipedia.org/wiki/Ada_Lovelace');
     expect(screen.getByText('social democracy')).toBeInTheDocument();
     expect(screen.getByText('1875')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /www\.spd\.de/i })).toHaveAttribute('href', 'https://www.spd.de/');
+    expect(screen.getAllByRole('link', { name: 'Germany' }).some((node) => node.getAttribute('href') === '/country/de')).toBe(true);
   });
 });

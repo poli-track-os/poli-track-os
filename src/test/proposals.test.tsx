@@ -76,6 +76,8 @@ describe("Proposals page", () => {
       countryCode: "DE",
       status: "adopted",
       policyArea: "energy",
+      page: 1,
+      pageSize: 60,
     });
 
     const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
@@ -83,5 +85,6 @@ describe("Proposals page", () => {
     expect(selects[1].value).toBe("adopted");
     expect(selects[2].value).toBe("energy");
     expect(screen.getAllByText("Energy Transition Package")).toHaveLength(2);
+    expect(screen.getByText("Showing 1-1")).toBeInTheDocument();
   });
 });
