@@ -1,21 +1,22 @@
 #!/usr/bin/env bash
-# Deploy all ingestion assets to the linked Supabase project.
+# Deploy database migrations plus every tracked edge function to the linked
+# Supabase project.
 #
-# Prereqs (one-time):
-#   1. Install the Supabase CLI:    https://supabase.com/docs/guides/cli
-#   2. supabase login               (OAuth in browser)
+# Local prerequisites:
+#   1. Install the Supabase CLI: https://supabase.com/docs/guides/cli
+#   2. supabase login
 #   3. supabase link --project-ref zygnkwyogazhwxfeatfc
 #
-# Then run this script from the repo root:
+# CI prerequisites:
+#   - SUPABASE_ACCESS_TOKEN
+#   - SUPABASE_DB_PASSWORD
+#
+# Usage:
 #   bash scripts/deploy-supabase.sh
 #
-# What it does, in order:
-#   1. supabase db push              — applies every migration under supabase/migrations
-#   2. supabase functions deploy ... — deploys every edge function under supabase/functions
-#
-# The functions use the service_role key already stored as a Supabase
-# function secret (Supabase injects SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
-# automatically — you don't need to set them here).
+# Optional env:
+#   SUPABASE_PROJECT_REF   Override project ref from supabase/config.toml
+#   SUPABASE_DB_PASSWORD   Remote Postgres password for non-interactive db push
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -30,30 +31,36 @@ if [ ! -f supabase/config.toml ]; then
   exit 1
 fi
 
-echo "==> Applying database migrations"
-supabase db push
+PROJECT_REF="${SUPABASE_PROJECT_REF:-$(awk -F'"' '/^project_id = "/ { print $2; exit }' supabase/config.toml)}"
+if [ -z "$PROJECT_REF" ]; then
+  echo "error: could not determine Supabase project ref from supabase/config.toml" >&2
+  exit 1
+fi
 
-FUNCTIONS=(
-  scrape-eu-parliament
-  scrape-national-parliament
-  enrich-wikipedia
-  scrape-twitter
-  scrape-un-votes
-  scrape-eu-legislation
-  scrape-mep-committees
-  scrape-mep-reports
-  scrape-mep-declarations
-  seed-positions
-  seed-associations
-)
+echo "==> Applying database migrations to $PROJECT_REF"
+DB_PUSH_CMD=(supabase db push --linked)
+if [ -n "${SUPABASE_DB_PASSWORD:-}" ]; then
+  DB_PUSH_CMD+=(--password "$SUPABASE_DB_PASSWORD")
+fi
+"${DB_PUSH_CMD[@]}"
+
+FUNCTIONS=()
+while IFS= read -r dir; do
+  if [ -f "$dir/index.ts" ]; then
+    FUNCTIONS+=("$(basename "$dir")")
+  fi
+done < <(find supabase/functions -mindepth 1 -maxdepth 1 -type d ! -name '_shared' | LC_ALL=C sort)
+
+if [ "${#FUNCTIONS[@]}" -eq 0 ]; then
+  echo "error: no deployable edge functions found under supabase/functions" >&2
+  exit 1
+fi
 
 echo "==> Deploying ${#FUNCTIONS[@]} edge functions"
 for fn in "${FUNCTIONS[@]}"; do
   echo "    -> $fn"
-  supabase functions deploy "$fn" --no-verify-jwt
+  supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt
 done
 
 echo
-echo "==> Done. You can now trigger the ingest workflow:"
-echo "    gh workflow run ingest.yml -f target=eu-parliament"
-echo "    (or via https://github.com/poli-track-os/poli-track-os/actions/workflows/ingest.yml)"
+echo "==> Done. Schema and edge functions are current on $PROJECT_REF."

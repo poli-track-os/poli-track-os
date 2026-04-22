@@ -128,6 +128,21 @@ npm run lint        # ESLint
 npm run typecheck   # tsc --noEmit
 ```
 
+## Deploying Supabase
+
+The repo is already linked to Supabase project `zygnkwyogazhwxfeatfc`. To update the hosted database schema and edge functions manually:
+
+```bash
+bash scripts/deploy-supabase.sh
+```
+
+GitHub also supports automatic Supabase deployment after successful CI on `main` via `.github/workflows/deploy-supabase.yml`. For that workflow to work, set these repository secrets:
+
+- `SUPABASE_ACCESS_TOKEN`
+- `SUPABASE_DB_PASSWORD`
+
+This deploy path updates the Supabase project only. The frontend is still a separate hosting concern.
+
 ## API & MCP
 
 Every piece of data the website shows is also exposed through two machine-readable surfaces:
