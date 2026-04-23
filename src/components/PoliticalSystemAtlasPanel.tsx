@@ -4,7 +4,7 @@ import {
   Minimize2,
   Network,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   CountryPoliticalProfile,
   PoliticalDiagram,
@@ -505,36 +505,31 @@ function DiagramCanvas({
     [diagram],
   );
 
-  if (diagram.nodes.length === 0) {
-    return (
-      <div className="brutalist-border p-4 bg-background text-xs text-muted-foreground">
-        Diagram not available yet for this country.
-      </div>
-    );
-  }
-
   const nodeList = Array.from(nodes.values());
   const clampedScale = Math.max(0.5, Math.min(2.8, scale));
 
-  const onWheelZoom = (event: WheelEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const rect = viewportRef.current?.getBoundingClientRect();
-    if (!rect) return;
+  const onWheelZoom = useCallback(
+    (event: WheelEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = viewportRef.current?.getBoundingClientRect();
+      if (!rect) return;
 
-    const cursorX = event.clientX - rect.left;
-    const cursorY = event.clientY - rect.top;
-    const factor = event.deltaY < 0 ? 1.1 : 0.9;
-    const next = Math.max(0.5, Math.min(2.8, clampedScale * factor));
-    const worldX = (cursorX - pan.x) / clampedScale;
-    const worldY = (cursorY - pan.y) / clampedScale;
+      const cursorX = event.clientX - rect.left;
+      const cursorY = event.clientY - rect.top;
+      const factor = event.deltaY < 0 ? 1.1 : 0.9;
+      const next = Math.max(0.5, Math.min(2.8, clampedScale * factor));
+      const worldX = (cursorX - pan.x) / clampedScale;
+      const worldY = (cursorY - pan.y) / clampedScale;
 
-    setScale(next);
-    setPan({
-      x: cursorX - worldX * next,
-      y: cursorY - worldY * next,
-    });
-  };
+      setScale(next);
+      setPan({
+        x: cursorX - worldX * next,
+        y: cursorY - worldY * next,
+      });
+    },
+    [clampedScale, pan.x, pan.y],
+  );
 
   const onMouseDown = (event: { button: number; clientX: number; clientY: number }) => {
     if (event.button !== 0) return;
@@ -558,7 +553,15 @@ function DiagramCanvas({
     const handler = (event: WheelEvent) => onWheelZoom(event);
     element.addEventListener('wheel', handler, { passive: false });
     return () => element.removeEventListener('wheel', handler as EventListener);
-  }, [scale, pan.x, pan.y]);
+  }, [onWheelZoom]);
+
+  if (diagram.nodes.length === 0) {
+    return (
+      <div className="brutalist-border p-4 bg-background text-xs text-muted-foreground">
+        Diagram not available yet for this country.
+      </div>
+    );
+  }
 
   const nodeDim = (id: string) => {
     if (hoverEdge !== null) {

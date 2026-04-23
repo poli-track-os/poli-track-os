@@ -135,14 +135,14 @@ export function extractPrintNumbersFromVoting(voting: SejmVotingEntry): string[]
   const normalized = text.replace(/\s+/g, ' ').toLowerCase();
   const out = new Set<string>();
   const patterns = [
-    /druki?\s+nr\s+([0-9,\si\-]+)/gi,
+    /druki?\s+nr\s+([0-9,\si-]+)/gi,
     /druk(?:u)?\s+nr\s+([0-9]+)/gi,
   ];
   for (const pattern of patterns) {
     let match: RegExpExecArray | null = null;
     while ((match = pattern.exec(normalized))) {
       const raw = match[1] ?? '';
-      for (const token of raw.split(/[,\si\-]+/)) {
+      for (const token of raw.split(/[,\si-]+/)) {
         const value = token.trim();
         if (/^\d+$/.test(value)) out.add(value);
       }
