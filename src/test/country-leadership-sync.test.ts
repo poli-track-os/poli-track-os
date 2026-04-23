@@ -129,4 +129,46 @@ describe('country leadership sync helpers', () => {
     expect(plan.payload.role).toBe('Head of Government');
     expect((plan.payload.source_attribution as Record<string, unknown>)._country_leadership).toBeDefined();
   });
+
+  it('refuses to merge a leadership seed into an official roster row with conflicting official names', () => {
+    const seed = buildCountryLeadershipSeeds({
+      country_code: 'PT',
+      country_name: 'Portugal',
+      head_of_state: 'António José Seguro',
+      head_of_government: 'Luís Montenegro',
+      officeholders: [
+        {
+          office: 'Head of Government',
+          personName: 'Luís Montenegro',
+          personEntityId: 'Q11764394',
+          personUrl: 'https://en.wikipedia.org/wiki/Lu%C3%ADs_Montenegro',
+        },
+      ],
+    })[1];
+
+    const indexes = buildCountryLeadershipMatchIndexes([
+      {
+        id: 'actor-3',
+        country_code: 'PT',
+        name: 'Luís Montenegro',
+        role: 'Head of Government',
+        data_source: 'official_record',
+        external_id: 'pt-ar:7904',
+        source_attribution: {
+          _country_leadership: {
+            record_id: 'country_leadership:PT:head_of_government:Q11764394',
+          },
+          _official_record: {
+            alternate_names: ['Luís Gonçalves Pereira', 'Luís Filipe Ramos Gonçalves Pereira'],
+          },
+        },
+        source_url: 'https://www.parlamento.pt/DeputadoGP/Paginas/Biografia.aspx?BID=7904',
+        wikipedia_url: 'https://en.wikipedia.org/wiki/Lu%C3%ADs_Montenegro',
+      },
+    ]);
+
+    const match = getCountryLeadershipMatch(indexes, seed);
+    expect(match.matchedBy).toBe('none');
+    expect(match.row).toBeNull();
+  });
 });

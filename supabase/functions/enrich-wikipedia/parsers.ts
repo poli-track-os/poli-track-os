@@ -184,12 +184,24 @@ export function candidateMatchesPolitician(
   if (lowerCats.some((c) => c.includes("disambiguation pages"))) return false;
 
   const fold = (s: string) =>
-    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
   const titleFolded = fold(candidateTitle);
   const nameTokens = fold(politicianName)
     .split(/\s+/)
     .filter((t) => t.length >= 4);
-  if (nameTokens.length > 0 && !nameTokens.some((t) => titleFolded.includes(t))) {
+  const titleTokens = new Set(
+    titleFolded
+      .split(/\s+/)
+      .filter((t) => t.length >= 4),
+  );
+  const overlapCount = nameTokens.filter((t) => titleTokens.has(t)).length;
+  const minOverlap = Math.min(2, nameTokens.length);
+  if (nameTokens.length > 0 && overlapCount < minOverlap) {
     return false;
   }
 

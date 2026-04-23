@@ -56,6 +56,24 @@ type LeadershipMatchIndexes = {
   byCountryName: Map<string, ExistingLeadershipPoliticianRow[]>;
 };
 
+function getOfficialRecordAlternateNames(row: ExistingLeadershipPoliticianRow) {
+  const officialBlock = row.source_attribution?._official_record;
+  if (!isRecord(officialBlock) || !Array.isArray(officialBlock.alternate_names)) return [];
+  return officialBlock.alternate_names
+    .filter((value): value is string => typeof value === 'string')
+    .map((value) => normalizePersonName(value))
+    .filter(Boolean);
+}
+
+function rowSupportsLeadershipIdentity(row: ExistingLeadershipPoliticianRow, seed: CountryLeadershipSeed) {
+  const targetName = normalizePersonName(seed.personName);
+  const officialNames = getOfficialRecordAlternateNames(row);
+  if (officialNames.length > 0) {
+    return officialNames.includes(targetName);
+  }
+  return normalizePersonName(row.name) === targetName;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -193,15 +211,20 @@ export function getCountryLeadershipMatch(indexes: LeadershipMatchIndexes, seed:
   }
 
   const bySourceRecordId = indexes.bySourceRecordId.get(seed.recordId);
-  if (bySourceRecordId) return { row: bySourceRecordId, matchedBy: 'source_attribution' as const };
+  if (bySourceRecordId && rowSupportsLeadershipIdentity(bySourceRecordId, seed)) {
+    return { row: bySourceRecordId, matchedBy: 'source_attribution' as const };
+  }
 
   const personUrl = normalizeUrl(seed.personUrl);
   if (personUrl) {
     const byPersonUrl = indexes.byPersonUrl.get(personUrl);
-    if (byPersonUrl) return { row: byPersonUrl, matchedBy: 'person_url' as const };
+    if (byPersonUrl && rowSupportsLeadershipIdentity(byPersonUrl, seed)) {
+      return { row: byPersonUrl, matchedBy: 'person_url' as const };
+    }
   }
 
-  const byName = indexes.byCountryName.get(buildCountryNameKey(seed.countryCode, seed.personName)) || [];
+  const byName = (indexes.byCountryName.get(buildCountryNameKey(seed.countryCode, seed.personName)) || [])
+    .filter((row) => rowSupportsLeadershipIdentity(row, seed));
   if (byName.length === 1) return { row: byName[0], matchedBy: 'name' as const };
 
   return { row: null, matchedBy: 'none' as const };

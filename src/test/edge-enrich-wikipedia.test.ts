@@ -171,6 +171,28 @@ describe("candidateMatchesPolitician", () => {
       ),
     ).toBe(false);
   });
+
+  it("rejects a candidate that only shares a common first name", () => {
+    expect(
+      candidateMatchesPolitician(
+        "Luís Montenegro",
+        ["Prime ministers of Portugal", "Members of the Assembly of the Republic (Portugal)"],
+        "Luís Gonçalves Pereira",
+        "Portugal",
+      ),
+    ).toBe(false);
+  });
+
+  it("accepts a candidate that expands a short display name into a fuller legal name", () => {
+    expect(
+      candidateMatchesPolitician(
+        "Miguel Costa Matos",
+        ["Portuguese politicians", "Members of the Assembly of the Republic (Portugal)"],
+        "Miguel Matos",
+        "Portugal",
+      ),
+    ).toBe(true);
+  });
 });
 
 // === The big behavioral test: buildEnrichmentUpdate must NOT clobber
