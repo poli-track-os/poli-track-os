@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildMatchIndexes,
   buildMutationPlan,
+  buildSourceAttribution,
   getMatch,
   type ExistingPoliticianRow,
 } from "../lib/official-roster-sync-helpers";
@@ -158,5 +159,52 @@ describe("buildMutationPlan — external_id guard", () => {
     const plan = buildMutationPlan(row, baseRecord, "external_id");
     expect(plan.payload.biography).toBeUndefined();
     expect(plan.payload.birth_year).toBe(1970);
+  });
+
+  it("drops stale country leadership attribution when the official identity differs", () => {
+    const row = baseRow({
+      id: "row-12",
+      external_id: "de-bundestag:11005000",
+      source_attribution: {
+        continent: {
+          record_id: "country_leadership:DE:head_of_government:Q123",
+          source_type: "wikipedia",
+        },
+        _country_leadership: {
+          record_id: "country_leadership:DE:head_of_government:Q123",
+          person_name: "Olaf Scholz",
+        },
+      },
+    });
+    const plan = buildMutationPlan(row, baseRecord, "external_id");
+    const sourceAttribution = plan.payload.source_attribution as Record<string, unknown>;
+    expect(sourceAttribution._country_leadership).toBeUndefined();
+    expect(sourceAttribution.continent).toBeUndefined();
+    expect(sourceAttribution._official_record).toBeDefined();
+  });
+
+  it("does not emit a fake source_attribution-only update when nothing actually changed", () => {
+    const row = baseRow({
+      id: "row-13",
+      biography: baseRecord.biography,
+      birth_year: baseRecord.birthYear,
+      committees: baseRecord.committees,
+      data_source: "official_record",
+      enriched_at: "2026-04-23T00:00:00.000Z",
+      external_id: "de-bundestag:11005000",
+      in_office_since: baseRecord.inOfficeSince,
+      jurisdiction: baseRecord.jurisdiction,
+      name: baseRecord.name,
+      party_abbreviation: baseRecord.partyAbbreviation,
+      party_name: baseRecord.partyName,
+      photo_url: baseRecord.photoUrl,
+      role: baseRecord.role,
+      source_url: baseRecord.sourceUrl,
+      source_attribution: buildSourceAttribution(null, baseRecord, []),
+      twitter_handle: baseRecord.twitterHandle,
+    });
+    const plan = buildMutationPlan(row, baseRecord, "external_id");
+    expect(plan.payload).toEqual({});
+    expect(plan.changedFields).toEqual([]);
   });
 });

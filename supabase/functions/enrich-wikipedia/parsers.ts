@@ -178,6 +178,7 @@ export function candidateMatchesPolitician(
 ): boolean {
   const lowerCats = categories.map((c) => c.toLowerCase());
   const country = countryName.toLowerCase();
+  const canonicalTitle = candidateTitle.replace(/\s*\([^)]*\)\s*$/, '');
 
   if (/\bdisambig/i.test(candidateTitle)) return false;
   if (/^list of|^lists of/i.test(candidateTitle)) return false;
@@ -190,19 +191,30 @@ export function candidateMatchesPolitician(
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, " ")
       .trim();
-  const titleFolded = fold(candidateTitle);
-  const nameTokens = fold(politicianName)
+  const titleFolded = fold(canonicalTitle);
+  const titleNameTokens = titleFolded
     .split(/\s+/)
-    .filter((t) => t.length >= 4);
+    .filter((t) => t.length >= 2);
   const titleTokens = new Set(
-    titleFolded
-      .split(/\s+/)
+    titleNameTokens
       .filter((t) => t.length >= 4),
   );
+  const nameParts = fold(politicianName)
+    .split(/\s+/)
+    .filter((t) => t.length >= 2);
+  const nameTokens = nameParts.filter((t) => t.length >= 4);
   const overlapCount = nameTokens.filter((t) => titleTokens.has(t)).length;
   const minOverlap = Math.min(2, nameTokens.length);
   if (nameTokens.length > 0 && overlapCount < minOverlap) {
-    return false;
+    const titleSurname = titleNameTokens[titleNameTokens.length - 1] || null;
+    const nameSurname = nameParts[nameParts.length - 1] || null;
+    const titleGiven = titleNameTokens[0] || null;
+    const nameGiven = nameParts[0] || null;
+    const sharesSurname = Boolean(titleSurname && nameSurname && titleSurname === nameSurname);
+    const sharesGivenInitial = Boolean(titleGiven && nameGiven && titleGiven[0] === nameGiven[0]);
+    if (!(sharesSurname && sharesGivenInitial)) {
+      return false;
+    }
   }
 
   const politicianMarker = lowerCats.some(

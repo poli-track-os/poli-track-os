@@ -54,6 +54,10 @@ export function buildSourceAttribution(
   fieldNames: string[],
 ) {
   const next: Record<string, unknown> = isRecord(existing) ? structuredClone(existing) : {};
+  const prunedStaleLeadership = pruneStaleCountryLeadershipAttribution(next, record);
+  if (!prunedStaleLeadership && fieldNames.length === 0) {
+    return next;
+  }
   const fetchedAt = new Date().toISOString();
   const sourceMeta = {
     source_type: SYNC_SOURCE_TYPE,
@@ -78,6 +82,35 @@ export function buildSourceAttribution(
   }
 
   return next;
+}
+
+function pruneStaleCountryLeadershipAttribution(next: Record<string, unknown>, record: OfficialRosterRecord) {
+  const leadershipBlock = next._country_leadership;
+  if (!isRecord(leadershipBlock)) return false;
+
+  const leadershipName = typeof leadershipBlock.person_name === 'string'
+    ? normalizeNameForMatch(leadershipBlock.person_name)
+    : '';
+  if (!leadershipName) return false;
+
+  const officialNames = new Set(
+    [record.name, ...record.alternateNames]
+      .map((value) => normalizeNameForMatch(value))
+      .filter(Boolean),
+  );
+  if (officialNames.has(leadershipName)) return false;
+
+  const staleRecordId = typeof leadershipBlock.record_id === 'string' ? leadershipBlock.record_id : null;
+  delete next._country_leadership;
+
+  if (!staleRecordId) return true;
+  for (const [fieldName, value] of Object.entries(next)) {
+    if (!isRecord(value)) continue;
+    if (value.record_id === staleRecordId) {
+      delete next[fieldName];
+    }
+  }
+  return true;
 }
 
 export function buildNameIndexes(rows: ExistingPoliticianRow[]) {
@@ -151,7 +184,7 @@ export function buildMutationPlan(
   const payload: Record<string, unknown> = {};
 
   const areEqual = (left: unknown, right: unknown) => {
-    if (Array.isArray(left) || Array.isArray(right)) {
+    if (Array.isArray(left) || Array.isArray(right) || isRecord(left) || isRecord(right)) {
       return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
     }
     return left === right;
@@ -217,13 +250,15 @@ export function buildMutationPlan(
   }
 
   const attributionFields = Object.keys(payload);
-
-  payload.source_attribution = buildSourceAttribution(
+  const nextSourceAttribution = buildSourceAttribution(
     existing?.source_attribution,
     record,
     attributionFields,
   );
-  changedFields.push('source_attribution');
+  if (!areEqual(existing?.source_attribution ?? null, nextSourceAttribution)) {
+    payload.source_attribution = nextSourceAttribution;
+    changedFields.push('source_attribution');
+  }
 
   if (!existing) {
     return {
@@ -247,7 +282,7 @@ export function buildMutationPlan(
         party_name: record.partyName,
         photo_url: record.photoUrl,
         role: record.role,
-        source_attribution: payload.source_attribution,
+        source_attribution: nextSourceAttribution,
         source_url: record.sourceUrl,
         twitter_handle: record.twitterHandle,
       },

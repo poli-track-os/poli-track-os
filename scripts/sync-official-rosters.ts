@@ -388,7 +388,7 @@ async function main() {
       }
     }
 
-    const actionablePlans = plans.filter((plan) => plan.action === 'insert' || Object.keys(plan.payload).some((key) => key !== 'source_attribution') || plan.changedFields.length > 1);
+    const actionablePlans = plans.filter((plan) => plan.action === 'insert' || Object.keys(plan.payload).length > 0);
 
     const summary = {
       apply: args.apply,

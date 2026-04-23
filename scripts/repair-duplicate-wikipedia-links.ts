@@ -5,7 +5,8 @@ import path from 'node:path';
 import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 import {
-  findWikipediaIdentityMismatches,
+  findDuplicateWikipediaUrlConflicts,
+  getDuplicateWikipediaRowsToClear,
   isWikipediaHostedImage,
   type WikipediaIdentityRow,
 } from '../src/lib/wikipedia-integrity.ts';
@@ -98,8 +99,7 @@ async function loadRows(supabase: ReturnType<typeof createClient>, countries: st
   for (let offset = 0; ; offset += pageSize) {
     let query = supabase
       .from('politicians')
-      .select('id, name, country_code, country_name, wikipedia_url, wikipedia_data, photo_url, source_attribution')
-      .eq('data_source', 'official_record')
+      .select('id, name, country_code, country_name, wikipedia_url, wikipedia_data, photo_url, source_attribution, data_source, external_id, source_url')
       .not('wikipedia_url', 'is', null)
       .order('id', { ascending: true })
       .range(offset, offset + pageSize - 1);
@@ -138,16 +138,28 @@ async function main() {
   });
 
   const rows = await loadRows(supabase, args.countries);
-  const mismatches = findWikipediaIdentityMismatches(rows).map((row) => ({
-    ...row,
-    clearPhoto: isWikipediaHostedImage(rows.find((candidate) => candidate.id === row.id)?.photo_url),
-  }));
+  const conflicts = findDuplicateWikipediaUrlConflicts(rows);
+  const rowsToClear = getDuplicateWikipediaRowsToClear(conflicts);
 
   const summary = {
     apply: args.apply,
     scanned: rows.length,
-    mismatches: mismatches.length,
-    sample: mismatches.slice(0, 20),
+    conflicts: conflicts.length,
+    clearableRows: rowsToClear.length,
+    sample: conflicts.slice(0, 20).map((conflict) => ({
+      wikipediaUrl: conflict.wikipediaUrl,
+      wikiTitle: conflict.wikiTitle,
+      matchedRows: conflict.matchedRows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        countryCode: row.country_code || null,
+      })),
+      mismatchedRows: conflict.mismatchedRows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        countryCode: row.country_code || null,
+      })),
+    })),
   };
 
   if (!args.apply) {
@@ -155,7 +167,7 @@ async function main() {
     return;
   }
 
-  for (const row of mismatches) {
+  for (const row of rowsToClear) {
     const payload: Record<string, unknown> = {
       wikipedia_url: null,
       wikipedia_summary: null,
@@ -163,7 +175,10 @@ async function main() {
       wikipedia_data: null,
       enriched_at: null,
     };
-    if (row.clearPhoto) payload.photo_url = null;
+    if (row.data_source === 'eu_parliament' || row.data_source === 'wikipedia') {
+      payload.biography = null;
+    }
+    if (isWikipediaHostedImage(row.photo_url)) payload.photo_url = null;
 
     const { error } = await supabase
       .from('politicians')

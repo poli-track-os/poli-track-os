@@ -193,6 +193,28 @@ describe("candidateMatchesPolitician", () => {
       ),
     ).toBe(true);
   });
+
+  it("accepts a candidate that shares surname and given-name initial despite a nickname", () => {
+    expect(
+      candidateMatchesPolitician(
+        "Konstantinos_Papadakis_(politician)",
+        ["Communist Party of Greece MEPs", "Greek MEP stubs", "MEPs for Greece 2024–2029"],
+        "Kostas PAPADAKIS",
+        "Greece",
+      ),
+    ).toBe(true);
+  });
+
+  it("still rejects a same-initial candidate with the wrong surname", () => {
+    expect(
+      candidateMatchesPolitician(
+        "Konstantinos_Papadakis_(politician)",
+        ["Communist Party of Greece MEPs", "Greek MEP stubs", "MEPs for Greece 2024–2029"],
+        "Konstantinos ARVANITIS",
+        "Greece",
+      ),
+    ).toBe(false);
+  });
 });
 
 // === The big behavioral test: buildEnrichmentUpdate must NOT clobber

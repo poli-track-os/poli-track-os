@@ -10,6 +10,12 @@ import path from 'node:path';
 import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 import { EUROSTAT_SUPPORTED_GEOS } from '../src/lib/eurostat-geo.ts';
+import {
+  findDuplicateWikipediaUrlConflicts,
+  findWikipediaIdentityMismatches,
+  type WikipediaIdentityRow,
+} from '../src/lib/wikipedia-integrity.ts';
+import { normalizePersonName } from '../src/lib/country-leadership.ts';
 
 function loadEnvFile(filePath: string, shellEnvKeys: Set<string>, overwrite = false) {
   if (!fs.existsSync(filePath)) return;
@@ -68,6 +74,92 @@ async function countTableByCountry(
   return counts;
 }
 
+async function loadWikipediaRows(
+  supabase: ReturnType<typeof createClient>,
+  sourceType: string | null = null,
+) {
+  const pageSize = 1000;
+  const rows: WikipediaIdentityRow[] = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    let query = supabase
+      .from('politicians')
+      .select('id, name, country_code, country_name, wikipedia_url, wikipedia_data, source_attribution, photo_url, data_source, external_id, source_url')
+      .not('wikipedia_url', 'is', null)
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1);
+
+    if (sourceType) query = query.eq('data_source', sourceType);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    const batch = (data || []) as WikipediaIdentityRow[];
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+
+  return rows;
+}
+
+type SourceAttributionRow = {
+  id: string;
+  name: string;
+  country_code: string | null;
+  source_attribution: Record<string, unknown> | null;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getLeadershipOfficialIdentityConflicts(rows: SourceAttributionRow[]) {
+  return rows
+    .map((row) => {
+      const officialBlock = row.source_attribution?._official_record;
+      const leadershipBlock = row.source_attribution?._country_leadership;
+      if (!isRecord(officialBlock) || !Array.isArray(officialBlock.alternate_names) || !isRecord(leadershipBlock)) {
+        return null;
+      }
+      const leadershipName = typeof leadershipBlock.person_name === 'string' ? leadershipBlock.person_name.trim() : '';
+      if (!leadershipName) return null;
+      const officialNames = officialBlock.alternate_names
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => normalizePersonName(value))
+        .filter(Boolean);
+      if (officialNames.length === 0) return null;
+      const normalizedLeadershipName = normalizePersonName(leadershipName);
+      if (officialNames.includes(normalizedLeadershipName)) return null;
+      return {
+        id: row.id,
+        name: row.name,
+        country_code: row.country_code,
+        leadership_name: leadershipName,
+        official_names: officialNames,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => Boolean(row));
+}
+
+async function loadSourceAttributionRows(supabase: ReturnType<typeof createClient>) {
+  const pageSize = 1000;
+  const rows: SourceAttributionRow[] = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase
+      .from('politicians')
+      .select('id, name, country_code, source_attribution')
+      .not('source_attribution', 'is', null)
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const batch = (data || []) as SourceAttributionRow[];
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+
+  return rows;
+}
+
 async function main() {
   loadLocalEnv();
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -124,6 +216,41 @@ async function main() {
         for (const r of (data || []) as { external_id: string }[]) counts.set(r.external_id, (counts.get(r.external_id) ?? 0) + 1);
         const dupes = [...counts.entries()].filter(([, n]) => n > 1);
         return { ok: dupes.length === 0, count: dupes.length, sample: dupes.slice(0, 5) };
+      },
+    },
+    {
+      name: 'official-roster-wikipedia-identity-mismatches',
+      description: 'Official-roster rows whose stored Wikipedia page no longer matches the official identity.',
+      run: async () => {
+        const rows = await loadWikipediaRows(supabase, 'official_record');
+        const mismatches = findWikipediaIdentityMismatches(rows);
+        return { ok: mismatches.length === 0, count: mismatches.length, sample: mismatches.slice(0, 5) };
+      },
+    },
+    {
+      name: 'duplicate-wikipedia-url-conflicts',
+      description: 'Different politicians sharing the same Wikipedia page URL while not all identities match that page.',
+      run: async () => {
+        const rows = await loadWikipediaRows(supabase);
+        const conflicts = findDuplicateWikipediaUrlConflicts(rows);
+        return {
+          ok: conflicts.length === 0,
+          count: conflicts.length,
+          sample: conflicts.slice(0, 5).map((conflict) => ({
+            wikipediaUrl: conflict.wikipediaUrl,
+            matchedRows: conflict.matchedRows.map((row) => ({ id: row.id, name: row.name, country_code: row.country_code })),
+            mismatchedRows: conflict.mismatchedRows.map((row) => ({ id: row.id, name: row.name, country_code: row.country_code })),
+          })),
+        };
+      },
+    },
+    {
+      name: 'leadership-official-identity-conflicts',
+      description: 'Rows that carry both leadership and official-roster provenance but disagree on who the person is.',
+      run: async () => {
+        const rows = await loadSourceAttributionRows(supabase);
+        const conflicts = getLeadershipOfficialIdentityConflicts(rows);
+        return { ok: conflicts.length === 0, count: conflicts.length, sample: conflicts.slice(0, 5) };
       },
     },
     {
