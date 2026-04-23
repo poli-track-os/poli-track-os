@@ -66,7 +66,7 @@ function filterPersonRows(rows: CoveragePersonRow[], query: string) {
 }
 
 export default function DataCoverageExplorer({ coverage, theme }: DataCoverageExplorerProps) {
-  const [view, setView] = useState<CoverageView>('people');
+  const [view, setView] = useState<CoverageView>('countries');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
 
@@ -145,9 +145,9 @@ export default function DataCoverageExplorer({ coverage, theme }: DataCoverageEx
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div className="flex flex-wrap gap-2 font-mono text-xs">
           {([
-            { key: 'people', label: `PEOPLE (${coverage.people.length})` },
-            { key: 'parties', label: `PARTIES (${coverage.parties.length})` },
             { key: 'countries', label: `COUNTRIES (${coverage.countries.length})` },
+            { key: 'parties', label: `PARTIES (${coverage.parties.length})` },
+            { key: 'people', label: `PEOPLE (${coverage.people.length})` },
           ] as const).map((option) => (
             <button
               key={option.key}

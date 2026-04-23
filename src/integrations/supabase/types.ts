@@ -1465,9 +1465,31 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      politician_data_observatory_overview: {
+        Row: {
+          birth_year: number | null
+          country_code: string
+          country_name: string
+          enriched_at: string | null
+          has_biography: boolean
+          has_photo: boolean
+          id: string
+          jurisdiction: string | null
+          name: string
+          party_abbreviation: string | null
+          party_name: string | null
+          role: string | null
+          twitter_handle: string | null
+          wikipedia_url: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      get_political_event_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_proposal_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json

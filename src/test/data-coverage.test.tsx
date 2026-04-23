@@ -87,6 +87,10 @@ describe('DataCoverageExplorer', () => {
 
     expect(screen.getByText('COVERAGE LEDGER')).toBeInTheDocument();
     expect(screen.getByText('PEOPLE (3)')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Portugal' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'COUNTRY' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'PEOPLE (3)' }));
     expect(screen.getByRole('link', { name: 'Clara Null' })).toBeInTheDocument();
     expect(screen.getByText('Biography')).toBeInTheDocument();
 
