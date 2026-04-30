@@ -58,7 +58,40 @@ const SOURCE_DEFINITIONS = {
     trust_level: 1,
     existing_script: 'scripts/collect-public-record-influence.ts',
     platform_targets: ['influence_actors', 'influence_filings', 'influence_money'],
-    notes: 'Candidate and committee campaign-finance totals. Itemized donor records are public but should be collected separately with privacy review.',
+    notes: 'Candidate campaign-finance totals. Itemized individual donor records are public but are intentionally excluded from the live collector.',
+  },
+  us_fec_committee: {
+    category: 'campaign_finance',
+    label: 'Federal Election Commission committee registry',
+    jurisdiction: 'US',
+    url: 'https://api.open.fec.gov/developers/',
+    api_url_template: 'https://api.open.fec.gov/v1/committees/?cycle={cycle}',
+    trust_level: 1,
+    existing_script: 'scripts/collect-public-record-influence.ts',
+    platform_targets: ['influence_actors', 'influence_filings'],
+    notes: 'Official FEC committee identity and registration metadata.',
+  },
+  us_fec_contribution: {
+    category: 'campaign_finance',
+    label: 'Federal Election Commission non-individual itemized receipts',
+    jurisdiction: 'US',
+    url: 'https://api.open.fec.gov/developers/',
+    api_url_template: 'https://api.open.fec.gov/v1/schedules/schedule_a/?two_year_transaction_period={cycle}',
+    trust_level: 1,
+    existing_script: 'scripts/collect-public-record-influence.ts',
+    platform_targets: ['influence_actors', 'influence_clients', 'influence_filings', 'influence_money'],
+    notes: 'Only organization, committee, PAC, and party receipts are collected; individual and candidate-name receipt rows are skipped to keep the platform conservative.',
+  },
+  us_fec_bulk_contribution: {
+    category: 'campaign_finance_bulk',
+    label: 'Federal Election Commission bulk non-individual receipts',
+    jurisdiction: 'US',
+    url: 'https://www.fec.gov/data/browse-data/?tab=bulk-data',
+    api_url_template: 'https://www.fec.gov/files/bulk-downloads/{cycle}/oth{cycle2}.zip',
+    trust_level: 1,
+    existing_script: 'scripts/collect-fec-bulk-contributions.ts',
+    platform_targets: ['influence_actors', 'influence_clients', 'influence_filings', 'influence_money'],
+    notes: 'Official FEC bulk receipts fallback for committee, organisation, PAC, and party entity types. Individual rows are excluded.',
   },
   us_lda: {
     category: 'lobbying_disclosure',
@@ -92,6 +125,17 @@ const SOURCE_DEFINITIONS = {
     platform_targets: ['companies', 'influence_actors', 'influence_filings'],
     notes: 'Official public-company filing history and issuer metadata.',
   },
+  sec_edgar_companyfacts: {
+    category: 'securities_facts',
+    label: 'SEC EDGAR XBRL company facts API',
+    jurisdiction: 'US',
+    url: 'https://www.sec.gov/search-filings/edgar-application-programming-interfaces',
+    api_url_template: 'https://data.sec.gov/api/xbrl/companyfacts/CIK{cik10}.json',
+    trust_level: 1,
+    existing_script: 'scripts/collect-public-record-influence.ts',
+    platform_targets: ['companies', 'influence_actors', 'influence_filings', 'influence_money'],
+    notes: 'Official issuer financial facts such as revenue, net income, assets, cash, and debt.',
+  },
   usaspending: {
     category: 'public_spending',
     label: 'USAspending API',
@@ -113,6 +157,17 @@ const SOURCE_DEFINITIONS = {
     existing_script: 'scripts/collect-public-record-influence.ts',
     platform_targets: ['influence_actors', 'influence_filings'],
     notes: 'Official agency-component registry and annual-report XML endpoints. Request-level FOIA data requires agency-specific handling.',
+  },
+  us_foia_annual_report: {
+    category: 'foia_annual_report',
+    label: 'FOIA annual report XML sources',
+    jurisdiction: 'US',
+    url: 'https://www.foia.gov/developer/',
+    api_url_template: 'https://api.foia.gov/api/annual-report-xml/{agency}/{year}',
+    trust_level: 1,
+    existing_script: 'scripts/collect-public-record-influence.ts',
+    platform_targets: ['influence_actors', 'influence_filings'],
+    notes: 'Official agency-level annual FOIA workload, backlog, staffing, and cost summaries. The collector uses direct agency XML files first and FOIA.gov API as fallback when rate limits permit.',
   },
   us_pcast: {
     category: 'science_advisory_appointments',
@@ -195,7 +250,20 @@ type WorldCatalog = {
 function sourceKeysForCountry(code: string) {
   const keys = ['opencorporates', 'opensanctions', 'wikidata'];
   if (code === 'US') {
-    keys.push('us_fec', 'us_lda', 'us_fara', 'sec_edgar', 'usaspending', 'us_foia', 'us_pcast');
+    keys.push(
+      'us_fec',
+      'us_fec_committee',
+      'us_fec_contribution',
+      'us_fec_bulk_contribution',
+      'us_lda',
+      'us_fara',
+      'sec_edgar',
+      'sec_edgar_companyfacts',
+      'usaspending',
+      'us_foia',
+      'us_foia_annual_report',
+      'us_pcast',
+    );
   }
   if (EU_COUNTRY_CODES.has(code)) {
     keys.push('eu_transparency_register', 'lobbyfacts', 'eu_expert_groups', 'eu_chief_scientific_advisors', 'eu_ege');

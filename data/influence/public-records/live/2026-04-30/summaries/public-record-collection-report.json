@@ -1,34 +1,30 @@
 {
-  "generated_at": "2026-04-30T14:42:24.616Z",
+  "generated_at": "2026-04-30T18:48:59.224Z",
   "apply": true,
   "args": {
     "apply": true,
     "outputDir": "data/influence/public-records/live/2026-04-30",
     "fecCycle": 2026,
     "fecLimit": 40,
+    "fecCommitteeLimit": 40,
+    "fecContributionLimit": 40,
     "secCompanies": 12,
     "secFilingsPerCompany": 6,
+    "secFactsPerCompany": 6,
     "usaspendingLimit": 3,
-    "foiaLimit": 75,
-    "skipFec": false,
+    "foiaLimit": 0,
+    "foiaAnnualYear": 2024,
+    "foiaAnnualLimit": 8,
+    "euExpertGroupLimit": 20,
+    "skipFec": true,
     "skipSec": false,
     "skipUsaspending": false,
     "skipFoia": false,
     "skipAdvisory": false,
+    "skipEuExpertGroups": false,
     "allowSourceErrors": false
   },
   "source_summaries": {
-    "us_fec": {
-      "actors": 40,
-      "companies": 0,
-      "officers": 0,
-      "ownership": 0,
-      "clients": 0,
-      "filings": 40,
-      "contacts": 0,
-      "money": 80,
-      "affiliations": 0
-    },
     "sec_edgar": {
       "actors": 12,
       "companies": 12,
@@ -40,24 +36,46 @@
       "money": 0,
       "affiliations": 0
     },
-    "usaspending": {
-      "actors": 9,
-      "companies": 36,
+    "sec_edgar_companyfacts": {
+      "actors": 12,
+      "companies": 12,
       "officers": 0,
       "ownership": 0,
-      "clients": 36,
-      "filings": 36,
+      "clients": 0,
+      "filings": 72,
       "contacts": 0,
-      "money": 36,
+      "money": 72,
+      "affiliations": 0
+    },
+    "usaspending": {
+      "actors": 6,
+      "companies": 30,
+      "officers": 0,
+      "ownership": 0,
+      "clients": 30,
+      "filings": 30,
+      "contacts": 0,
+      "money": 30,
       "affiliations": 0
     },
     "us_foia": {
-      "actors": 71,
+      "actors": 0,
       "companies": 0,
       "officers": 0,
       "ownership": 0,
       "clients": 0,
-      "filings": 50,
+      "filings": 0,
+      "contacts": 0,
+      "money": 0,
+      "affiliations": 0
+    },
+    "us_foia_annual_report": {
+      "actors": 8,
+      "companies": 0,
+      "officers": 0,
+      "ownership": 0,
+      "clients": 0,
+      "filings": 8,
       "contacts": 0,
       "money": 0,
       "affiliations": 0
@@ -72,18 +90,29 @@
       "contacts": 31,
       "money": 0,
       "affiliations": 0
+    },
+    "eu_expert_groups": {
+      "actors": 20,
+      "companies": 0,
+      "officers": 0,
+      "ownership": 0,
+      "clients": 0,
+      "filings": 20,
+      "contacts": 0,
+      "money": 0,
+      "affiliations": 0
     }
   },
   "source_errors": {},
   "summary": {
-    "actors": 166,
-    "companies": 48,
+    "actors": 92,
+    "companies": 54,
     "officers": 0,
     "ownership": 0,
-    "clients": 36,
-    "filings": 201,
+    "clients": 30,
+    "filings": 205,
     "contacts": 31,
-    "money": 116,
+    "money": 102,
     "affiliations": 0
   },
   "artifacts": {
@@ -93,14 +122,14 @@
   },
   "status": "completed",
   "applied": {
-    "actors": 166,
-    "companies": 48,
+    "actors": 92,
+    "companies": 54,
     "officers": 0,
     "ownership": 0,
-    "clients": 36,
-    "filings": 201,
+    "clients": 30,
+    "filings": 205,
     "contacts": 31,
-    "money": 116,
+    "money": 102,
     "affiliations": 0
   }
 }

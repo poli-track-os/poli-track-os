@@ -1,0 +1,39 @@
+{
+  "generated_at": "2026-04-30T18:57:32.017Z",
+  "apply": true,
+  "args": {
+    "apply": true,
+    "cycle": 2026,
+    "limit": 40,
+    "outputDir": "data/influence/public-records/live/2026-04-30-fec-bulk"
+  },
+  "scanned": 7851899,
+  "matched": 101559,
+  "summary": {
+    "actors": 38,
+    "companies": 0,
+    "officers": 0,
+    "ownership": 0,
+    "clients": 21,
+    "filings": 40,
+    "contacts": 0,
+    "money": 40,
+    "affiliations": 0
+  },
+  "applied": {
+    "actors": 38,
+    "companies": 0,
+    "officers": 0,
+    "ownership": 0,
+    "clients": 21,
+    "filings": 40,
+    "contacts": 0,
+    "money": 40,
+    "affiliations": 0
+  },
+  "artifacts": {
+    "rawPath": "data/influence/public-records/live/2026-04-30-fec-bulk/raw/fec-bulk-selected-receipts.json",
+    "bundlePath": "data/influence/public-records/live/2026-04-30-fec-bulk/normalized/fec-bulk-influence-bundle.json",
+    "reportPath": "data/influence/public-records/live/2026-04-30-fec-bulk/summaries/fec-bulk-collection-report.json"
+  }
+}

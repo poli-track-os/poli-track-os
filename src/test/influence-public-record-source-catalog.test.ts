@@ -34,11 +34,16 @@ describe('influence public-record source catalog', () => {
     expect(us.coverage_level).toBe('us_federal_public_records');
     expect(us.source_keys).toEqual(expect.arrayContaining([
       'us_fec',
+      'us_fec_committee',
+      'us_fec_contribution',
+      'us_fec_bulk_contribution',
       'us_lda',
       'us_fara',
       'sec_edgar',
+      'sec_edgar_companyfacts',
       'usaspending',
       'us_foia',
+      'us_foia_annual_report',
       'us_pcast',
     ]));
   });
