@@ -111,6 +111,23 @@ async function fetchAllPages<T>(fetchPage: (from: number, to: number) => Promise
   return rows;
 }
 
+async function fetchOfficeCompensationRows() {
+  try {
+    return await fetchAllPages<any>(async (from, to) => {
+      const { data, error } = await (supabase as any)
+        .from('public_office_compensation')
+        .select('country_code, country_name, office_type, office_title, year, effective_date, annual_amount, currency, annual_amount_eur, source_type, trust_level, source_label, source_url')
+        .order('country_code', { ascending: true })
+        .range(from, to);
+      if (error) throw error;
+      return data || [];
+    });
+  } catch (error) {
+    if (isMissingObjectError(error)) return [];
+    throw error;
+  }
+}
+
 export function mapOverviewRowToCoveragePolitician(row: ObservatoryOverviewRow): CoveragePoliticianRow {
   return {
     id: row.id,
@@ -316,19 +333,19 @@ async function fetchProposalStats() {
 
 export function useDataStats() {
   return useQuery({
-    queryKey: ['data-stats'],
+    queryKey: ['data-stats', 'finance-v2'],
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     queryFn: async () => {
-      const [overviewRows, politicalEventStats, financesData, investmentsData, positionsData, proposalStats] = await Promise.all([
+      const [overviewRows, politicalEventStats, financesData, investmentsData, officeCompensationData, positionsData, proposalStats] = await Promise.all([
         fetchOverviewRows(),
         fetchPoliticalEventStats(),
         fetchAllPages<any>(async (from, to) => {
           const { data, error } = await supabase
             .from('politician_finances')
-            .select('politician_id, annual_salary, side_income, declared_assets, property_value, salary_source')
+            .select('politician_id, annual_salary, side_income, declared_assets, property_value, declared_debt, salary_source, politicians(name, country_code, country_name, role)')
             .order('politician_id', { ascending: true })
             .range(from, to);
           if (error) throw error;
@@ -343,6 +360,7 @@ export function useDataStats() {
           if (error) throw error;
           return data || [];
         }),
+        fetchOfficeCompensationRows(),
         fetchAllPages<any>(async (from, to) => {
           const { data, error } = await supabase
             .from('politician_positions')
@@ -498,6 +516,8 @@ export function useDataStats() {
 
       const finances = financesData;
       const invData = investmentsData;
+      const officeCompensation = officeCompensationData;
+      const salaryDataCount = finances.filter((finance: any) => Number(finance.annual_salary || 0) > 0).length;
 
       const salaryBuckets = [
         { range: '< €80K', min: 0, max: 80000, count: 0 },
@@ -539,17 +559,107 @@ export function useDataStats() {
 
       const salaryBySource: Record<string, { total: number; count: number }> = {};
       finances.forEach((finance: any) => {
+        if (!Number(finance.annual_salary || 0)) return;
         const source = finance.salary_source || 'Unknown';
         if (!salaryBySource[source]) salaryBySource[source] = { total: 0, count: 0 };
-        salaryBySource[source].total += finance.annual_salary || 0;
+        salaryBySource[source].total += Number(finance.annual_salary || 0);
         salaryBySource[source].count++;
       });
       const avgSalaryBySource = Object.entries(salaryBySource)
         .map(([name, { total, count }]) => ({ name, avgSalary: Math.round(total / count), count }))
         .sort((left, right) => right.avgSalary - left.avgSalary);
 
+      const latestOfficePay = [...officeCompensation.reduce((acc: Map<string, any>, row: any) => {
+        if (!row.country_code || !row.office_type || !Number.isFinite(Number(row.annual_amount))) return acc;
+        const key = `${row.country_code}:${row.office_type}:${row.office_title}`;
+        const existing = acc.get(key);
+        if (!existing || Number(row.year || 0) > Number(existing.year || 0) || String(row.effective_date || '') > String(existing.effective_date || '')) {
+          acc.set(key, row);
+        }
+        return acc;
+      }, new Map<string, any>()).values()]
+        .map((row: any) => ({
+          countryCode: row.country_code,
+          countryName: row.country_name || row.country_code,
+          officeType: row.office_type,
+          officeTitle: row.office_title,
+          year: row.year,
+          amount: Number(row.annual_amount || 0),
+          amountEur: row.annual_amount_eur === null || row.annual_amount_eur === undefined ? null : Number(row.annual_amount_eur),
+          currency: row.currency || 'UNKNOWN',
+          sourceType: row.source_type || 'unknown',
+          sourceLabel: row.source_label || 'Source',
+          sourceUrl: row.source_url || null,
+        }))
+        .sort((left, right) => left.countryCode.localeCompare(right.countryCode) || left.officeType.localeCompare(right.officeType));
+
+      const latestMemberPayEur = latestOfficePay
+        .filter((row) => row.officeType === 'member_of_parliament' && row.currency === 'EUR')
+        .sort((left, right) => right.amount - left.amount)
+        .slice(0, 8);
+      const officePayTrendKeys = latestMemberPayEur.map((row) => `${row.countryCode} MP`);
+      const trendCountries = new Set(latestMemberPayEur.map((row) => row.countryCode));
+      const officePayTrendRows = officeCompensation
+        .filter((row: any) => row.office_type === 'member_of_parliament')
+        .filter((row: any) => trendCountries.has(row.country_code))
+        .filter((row: any) => row.currency === 'EUR' || Number(row.annual_amount_eur || 0) > 0)
+        .filter((row: any) => Number(row.year || 0) >= 2013);
+      const trendByYear = new Map<number, Record<string, number | string>>();
+      const latestPointByKey = new Map<string, any>();
+      officePayTrendRows.forEach((row: any) => {
+        const year = Number(row.year);
+        const seriesKey = `${row.country_code} MP`;
+        const pointKey = `${year}:${seriesKey}`;
+        const existing = latestPointByKey.get(pointKey);
+        if (!existing || String(row.effective_date || '') > String(existing.effective_date || '')) latestPointByKey.set(pointKey, row);
+      });
+      latestPointByKey.forEach((row: any, pointKey: string) => {
+        const [yearText, seriesKey] = pointKey.split(':');
+        const year = Number(yearText);
+        if (!trendByYear.has(year)) trendByYear.set(year, { year });
+        trendByYear.get(year)![seriesKey] = Math.round(Number(row.annual_amount_eur || row.annual_amount || 0));
+      });
+      const officePayTrend = [...trendByYear.values()].sort((left: any, right: any) => Number(left.year) - Number(right.year));
+
       const withSideIncome = finances.filter((finance: any) => (finance.side_income || 0) > 0);
       const totalInvestmentValue = invData.reduce((sum: number, investment: any) => sum + (investment.estimated_value || 0), 0);
+      const officeTypeForRole = (role: string | null | undefined) => {
+        const normalized = String(role || '').toLowerCase();
+        if (normalized.includes('head of government') || normalized.includes('prime minister')) return 'head_of_government';
+        if (normalized.includes('head of state') || normalized.includes('president')) return 'head_of_state';
+        if (normalized.includes('european parliament') || normalized === 'mep') return 'member_of_european_parliament';
+        if (normalized.includes('senator')) return 'senator';
+        if (normalized.includes('parliament')) return 'member_of_parliament';
+        return null;
+      };
+      const latestPayByCountryRole = new Map<string, number>();
+      latestOfficePay.forEach((row) => {
+        const amount = Number(row.amountEur || row.amount || 0);
+        if (amount > 0) latestPayByCountryRole.set(`${row.countryCode}:${row.officeType}`, amount);
+      });
+      const wealthRows = finances
+        .map((finance: any) => {
+          const assets = Number(finance.declared_assets || finance.property_value || 0);
+          const debt = Number(finance.declared_debt || 0);
+          const netWorth = assets - debt;
+          const roleOfficeType = officeTypeForRole(finance.politicians?.role);
+          const rolePay = roleOfficeType ? latestPayByCountryRole.get(`${finance.politicians?.country_code}:${roleOfficeType}`) : null;
+          const comparablePay = Number(finance.annual_salary || rolePay || 0);
+          return { ...finance, assets, debt, netWorth, comparablePay };
+        })
+        .filter((finance: any) => finance.assets > 0 || finance.debt > 0);
+      const wealthPayRatios = wealthRows
+        .filter((finance: any) => finance.netWorth > 0 && Number(finance.comparablePay || 0) > 0)
+        .map((finance: any) => ({
+          name: finance.politicians?.name || finance.politician_id,
+          country: finance.politicians?.country_code || '—',
+          netWorth: Math.round(finance.netWorth),
+          salary: Math.round(Number(finance.comparablePay || 0)),
+          ratio: finance.netWorth / Number(finance.comparablePay || 1),
+        }))
+        .sort((left: any, right: any) => right.ratio - left.ratio)
+        .slice(0, 10);
+      const totalDeclaredNetWorth = wealthRows.reduce((sum: number, finance: any) => sum + finance.netWorth, 0);
 
       const positions = positionsData.map((position: any) =>
         resolvePoliticalPosition(
@@ -691,8 +801,21 @@ export function useDataStats() {
         bySector,
         topCompanies,
         avgSalaryBySource,
+        financialDisclosureCount: finances.length,
+        financialDisclosurePct: total > 0 ? Math.round((finances.length / total) * 100) : 0,
+        salaryDataCount,
+        officeCompensationCount: officeCompensation.length,
+        officeCompensationCountries: new Set(officeCompensation.map((row: any) => row.country_code)).size,
+        officeCompensationOfficialCount: officeCompensation.filter((row: any) => row.source_type === 'official').length,
+        officePayLatestByCountry: latestOfficePay,
+        officePayTrend,
+        officePayTrendKeys,
         sideIncomeCount: withSideIncome.length,
         sideIncomePct: finances.length > 0 ? Math.round((withSideIncome.length / finances.length) * 100) : 0,
+        declaredWealthCount: wealthRows.length,
+        wealthPayRatioCount: wealthPayRatios.length,
+        totalDeclaredNetWorth,
+        wealthPayRatios,
         totalInvestmentValue,
         totalInvestments: invData.length,
         politiciansWithInvestments: new Set(invData.map((investment: any) => investment.politician_id)).size,

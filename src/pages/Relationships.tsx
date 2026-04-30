@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { usePoliticians, useCountryStats, useAllPositions } from '@/hooks/use-politicians';
+import { formatInfluenceAmount, useInfluenceRelationshipSummary } from '@/hooks/use-influence';
 import { IDEOLOGY_COLORS, getIdeologyFamily } from '@/lib/political-positioning';
 import { ProvenanceBar } from '@/components/SourceBadge';
 
-type ViewMode = 'clusters' | 'connections' | 'tree';
+type ViewMode = 'clusters' | 'connections' | 'tree' | 'influence';
 
 const Relationships = () => {
   const [view, setView] = useState<ViewMode>('clusters');
@@ -23,7 +24,7 @@ const Relationships = () => {
         </div>
 
         <div className="flex gap-0 mb-6">
-          {(['clusters', 'connections', 'tree'] as ViewMode[]).map(v => (
+          {(['clusters', 'connections', 'tree', 'influence'] as ViewMode[]).map(v => (
             <button
               key={v}
               onClick={() => setView(v)}
@@ -39,8 +40,106 @@ const Relationships = () => {
         {view === 'clusters' && <ClustersView />}
         {view === 'connections' && <ConnectionsView />}
         {view === 'tree' && <TreeView />}
+        {view === 'influence' && <InfluenceRelationshipsView />}
       </main>
       <SiteFooter />
+    </div>
+  );
+};
+
+const InfluenceRelationshipsView = () => {
+  const [edgeType, setEdgeType] = useState<'all' | 'contacts' | 'money' | 'officers' | 'ownership'>('all');
+  const { data, isLoading } = useInfluenceRelationshipSummary();
+  const sections = [
+    { key: 'contacts', label: 'CONTACTS', count: data?.contacts.length || 0 },
+    { key: 'money', label: 'MONEY', count: data?.money.length || 0 },
+    { key: 'officers', label: 'OFFICERS', count: data?.officers.length || 0 },
+    { key: 'ownership', label: 'OWNERSHIP', count: data?.ownership.length || 0 },
+  ] as const;
+
+  return (
+    <div className="space-y-6">
+      <p className="font-mono text-xs text-muted-foreground">
+        Influence graph edges from filings, payments, company roles, beneficial ownership, and disclosed contacts.
+      </p>
+      <div className="flex gap-1 flex-wrap">
+        <button onClick={() => setEdgeType('all')} className={`evidence-tag cursor-pointer ${edgeType === 'all' ? 'bg-primary text-primary-foreground' : ''}`}>ALL</button>
+        {sections.map((section) => (
+          <button
+            key={section.key}
+            onClick={() => setEdgeType(section.key)}
+            className={`evidence-tag cursor-pointer ${edgeType === section.key ? 'bg-primary text-primary-foreground' : ''}`}
+          >
+            {section.label} ({section.count})
+          </button>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <div className="font-mono text-sm text-muted-foreground">Loading influence edges...</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {(edgeType === 'all' || edgeType === 'contacts') && (
+            <section className="brutalist-border p-4 bg-card">
+              <h3 className="font-mono text-xs font-bold mb-3">DISCLOSED CONTACT EDGES</h3>
+              <div className="space-y-2 max-h-[360px] overflow-auto">
+                {(data?.contacts || []).slice(0, 60).map((row: any) => (
+                  <div key={row.id} className="font-mono text-xs border-b border-border/40 pb-2">
+                    <div className="font-bold">{row.target_institution || row.target_country_code || 'Contact target'}</div>
+                    <div className="text-muted-foreground">{row.data_source}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {(edgeType === 'all' || edgeType === 'money') && (
+            <section className="brutalist-border p-4 bg-card">
+              <h3 className="font-mono text-xs font-bold mb-3">MONEY EDGES</h3>
+              <div className="space-y-2 max-h-[360px] overflow-auto">
+                {(data?.money || []).slice(0, 60).map((row: any) => (
+                  <div key={row.id} className="font-mono text-xs border-b border-border/40 pb-2">
+                    <div className="font-bold">{formatInfluenceAmount(Number(row.amount_exact ?? row.amount_high ?? row.amount_low ?? 0), row.currency || 'USD')}</div>
+                    <div className="text-muted-foreground">{row.data_source}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {(edgeType === 'all' || edgeType === 'officers') && (
+            <section className="brutalist-border p-4 bg-card">
+              <h3 className="font-mono text-xs font-bold mb-3">COMPANY ROLE EDGES</h3>
+              <div className="space-y-2 max-h-[360px] overflow-auto">
+                {(data?.officers || []).slice(0, 60).map((row: any) => (
+                  <div key={row.id} className="font-mono text-xs border-b border-border/40 pb-2">
+                    <div className="font-bold">{row.name}</div>
+                    <div className="text-muted-foreground">{row.role} · {row.data_source}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {(edgeType === 'all' || edgeType === 'ownership') && (
+            <section className="brutalist-border p-4 bg-card">
+              <h3 className="font-mono text-xs font-bold mb-3">BENEFICIAL OWNERSHIP EDGES</h3>
+              <div className="space-y-2 max-h-[360px] overflow-auto">
+                {(data?.ownership || []).slice(0, 60).map((row: any) => (
+                  <div key={row.id} className="font-mono text-xs border-b border-border/40 pb-2">
+                    <div className="font-bold">{row.control_type || 'Ownership/control'}</div>
+                    <div className="text-muted-foreground">{row.ownership_percent ? `${row.ownership_percent}% · ` : ''}{row.data_source}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+      <ProvenanceBar sources={[
+        { label: 'Influence registry', type: 'fact' },
+        { label: 'Official filings and vetted secondary datasets', type: 'official' },
+      ]} />
     </div>
   );
 };

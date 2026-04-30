@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-04-30",
+  "records": [
+    {
+      "country_code": "KM",
+      "country_name": "Comoros",
+      "jurisdiction": "federal",
+      "chamber_id": "KM-LC01",
+      "office_type": "member_of_parliament",
+      "office_title": "Comoros Assembly of the Union deputy monthly base indemnity",
+      "role_patterns": ["Member of Parliament", "Deputy"],
+      "year": 2005,
+      "effective_date": "2005-03-03",
+      "date_to": null,
+      "period": "monthly_base_indemnity",
+      "amount": 500000,
+      "annual_amount": 6000000,
+      "currency": "KMF",
+      "annual_amount_eur": null,
+      "source_url": "https://justice.gouv.km/wp-content/uploads/2025/03/loi-organique-n-05-004au-du-3-mars-2005-portant-fixation-des-indemnites-des-deputes-de-lassemblee-de-lunion-des-comores.pdf",
+      "source_label": "Comoros Organic Law 05-004/AU fixing Assembly deputy indemnities",
+      "source_type": "official",
+      "trust_level": 1,
+      "notes": "Official Ministry of Justice PDF. The source fixes the monthly base indemnity for deputies; specific additional benefits are set separately by the Assembly Bureau and are not quantified in this source.",
+      "raw_data": {
+        "source_lines": "Article premier: L'indemnite mensuelle de base des deputes de l'Assemblee de l'Union des Comores est fixe a 500 000 francs Comoriens."
+      }
+    }
+  ]
+}

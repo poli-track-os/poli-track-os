@@ -133,6 +133,31 @@ export interface PoliticianInvestment {
   notes: string | null;
 }
 
+export interface PoliticianOfficeCompensation {
+  politician_id: string;
+  politician_name: string;
+  politician_role: string | null;
+  country_code: string;
+  country_name: string;
+  jurisdiction: string;
+  chamber_id: string | null;
+  office_type: string;
+  office_title: string;
+  year: number;
+  effective_date: string;
+  date_to: string | null;
+  period: string;
+  amount: number;
+  annual_amount: number;
+  currency: string;
+  annual_amount_eur: number | null;
+  source_url: string;
+  source_label: string;
+  source_type: string;
+  trust_level: number;
+  notes: string | null;
+}
+
 export function usePoliticianFinances(politicianId: string | undefined) {
   return useQuery({
     queryKey: ['politician-finances', politicianId],
@@ -149,6 +174,25 @@ export function usePoliticianFinances(politicianId: string | undefined) {
       return data as PoliticianFinance | null;
     },
     enabled: !!politicianId,
+  });
+}
+
+export function usePoliticianOfficeCompensation(politicianId: string | undefined) {
+  return useQuery({
+    queryKey: ['politician-office-compensation', politicianId],
+    queryFn: async () => {
+      if (!politicianId) return [];
+      const client = supabase as any;
+      const { data, error } = await client
+        .from('politician_current_office_compensation')
+        .select('politician_id, politician_name, politician_role, country_code, country_name, jurisdiction, chamber_id, office_type, office_title, year, effective_date, date_to, period, amount, annual_amount, currency, annual_amount_eur, source_url, source_label, source_type, trust_level, notes')
+        .eq('politician_id', politicianId)
+        .order('year', { ascending: false });
+      if (error) throw error;
+      return (data || []) as PoliticianOfficeCompensation[];
+    },
+    enabled: !!politicianId,
+    staleTime: 10 * 60 * 1000,
   });
 }
 

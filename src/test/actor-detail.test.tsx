@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
@@ -63,6 +64,7 @@ vi.mock('@/hooks/use-politicians', () => ({
   usePoliticianEvents: () => ({ data: [] }),
   usePoliticianFinances: () => ({ data: null }),
   usePoliticianInvestments: () => ({ data: [] }),
+  usePoliticianOfficeCompensation: () => ({ data: [] }),
   usePoliticianPosition: () => ({
     data: mockPosition,
   }),
@@ -128,6 +130,29 @@ vi.mock('@/hooks/use-party-metadata', () => ({
   }),
 }));
 
+function renderActorDetail() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        initialEntries={['/actors/ventura']}
+      >
+        <Routes>
+          <Route path="/actors/:id" element={<ActorDetail />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
 describe('ActorDetail page', () => {
   it('replaces the legacy centrist bucket with the stricter Chega estimate', async () => {
     mockPolitician = { ...baseMockPolitician };
@@ -147,16 +172,7 @@ describe('ActorDetail page', () => {
     }, 'Chega', 'CH', 'PT');
     mockWikipediaFallback.mockReturnValue({ data: null });
 
-    render(
-      <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-        initialEntries={['/actors/ventura']}
-      >
-        <Routes>
-          <Route path="/actors/:id" element={<ActorDetail />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+    renderActorDetail();
 
     expect(await screen.findByRole('heading', { name: 'André Ventura' })).toBeInTheDocument();
     expect(screen.getByText('Right-wing populist')).toBeInTheDocument();
@@ -197,16 +213,7 @@ describe('ActorDetail page', () => {
       },
     });
 
-    render(
-      <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-        initialEntries={['/actors/ventura']}
-      >
-        <Routes>
-          <Route path="/actors/:id" element={<ActorDetail />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+    renderActorDetail();
 
     expect(await screen.findByText('Live Wikipedia fallback biography.')).toBeInTheDocument();
     expect(screen.getByText('Portuguese politician and lawyer')).toBeInTheDocument();
@@ -227,16 +234,7 @@ describe('ActorDetail page', () => {
     };
     mockWikipediaFallback.mockReturnValue({ data: null });
 
-    render(
-      <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-        initialEntries={['/actors/ventura']}
-      >
-        <Routes>
-          <Route path="/actors/:id" element={<ActorDetail />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+    renderActorDetail();
 
     expect(await screen.findByText('PROFILE DOSSIER')).toBeInTheDocument();
     expect(screen.getByText('COUNTRY CONTEXT')).toBeInTheDocument();
@@ -280,16 +278,7 @@ describe('ActorDetail page', () => {
     };
     mockWikipediaFallback.mockReturnValue({ data: null });
 
-    render(
-      <MemoryRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-        initialEntries={['/actors/ventura']}
-      >
-        <Routes>
-          <Route path="/actors/:id" element={<ActorDetail />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+    renderActorDetail();
 
     const title = await screen.findByText(/Dichiarazione di monumento nazionale di Piazza Caduti di Marcinelle/i);
     expect(title).toHaveClass('block', 'break-words', 'leading-snug');

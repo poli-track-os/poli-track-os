@@ -1,0 +1,1092 @@
+{
+  "apply": true,
+  "country": "FR",
+  "outputDir": "data/asset-declarations/live/2026-04-30-hatvp",
+  "politiciansConsidered": 83,
+  "matchedPoliticians": 83,
+  "unmatchedPoliticians": [],
+  "interestFilesDownloaded": 82,
+  "financePatches": 310,
+  "financeInserted": 270,
+  "financeUpdated": 40,
+  "investmentRowsPrepared": 163,
+  "investmentsInserted": 163,
+  "publicAssetDeclarationsMatched": [
+    {
+      "politician": "Sébastien Lecornu",
+      "declarationType": "DSP",
+      "declarationDate": "2025-11-13",
+      "declaredAssets": 1035712,
+      "declaredDebt": 573903,
+      "netWorth": 461809,
+      "itemCount": 11
+    },
+    {
+      "politician": "Sébastien Lecornu",
+      "declarationType": "DSPFM",
+      "declarationDate": "2026-02-27",
+      "declaredAssets": 1044399,
+      "declaredDebt": 564372,
+      "netWorth": 480027,
+      "itemCount": 12
+    }
+  ],
+  "unavailablePatrimony": [
+    {
+      "politician": "Aleksandar NIKOLIC",
+      "type_document": "dspm",
+      "date_depot": "2024-11-05",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Aleksandar NIKOLIC",
+      "type_document": "dsp",
+      "date_depot": "2024-08-22",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Alexandre VARAUT",
+      "type_document": "dspm",
+      "date_depot": "2025-03-21",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Alexandre VARAUT",
+      "type_document": "dsp",
+      "date_depot": "2024-09-11",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "André ROUGÉ",
+      "type_document": "dspm",
+      "date_depot": "2025-06-10",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "André ROUGÉ",
+      "type_document": "dsp",
+      "date_depot": "2024-09-10",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Angéline FURET",
+      "type_document": "dspm",
+      "date_depot": "2025-01-16",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Angéline FURET",
+      "type_document": "dsp",
+      "date_depot": "2024-07-21",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Anne-Sophie FRIGOUT",
+      "type_document": "dspm",
+      "date_depot": "2025-03-24",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Anne-Sophie FRIGOUT",
+      "type_document": "dsp",
+      "date_depot": "2024-08-29",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Anthony SMITH",
+      "type_document": "dspm",
+      "date_depot": "2024-11-24",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Anthony SMITH",
+      "type_document": "dsp",
+      "date_depot": "2024-08-16",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Arash SAEIDI",
+      "type_document": "dspm",
+      "date_depot": "2025-05-26",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Arash SAEIDI",
+      "type_document": "dsp",
+      "date_depot": "2024-09-15",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Aurore LALUCQ",
+      "type_document": "dsp",
+      "date_depot": "2024-09-10",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Bernard GUETTA",
+      "type_document": "dsp",
+      "date_depot": "2024-09-05",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Catherine GRISET",
+      "type_document": "dspm",
+      "date_depot": "2025-03-12",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Catherine GRISET",
+      "type_document": "dsp",
+      "date_depot": "2024-09-15",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Céline IMART",
+      "type_document": "dspm",
+      "date_depot": "2025-02-28",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Céline IMART",
+      "type_document": "dsp",
+      "date_depot": "2024-09-06",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Chloé RIDEL",
+      "type_document": "dsp",
+      "date_depot": "2024-09-09",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Christophe BAY",
+      "type_document": "dspm",
+      "date_depot": "2025-10-02",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Christophe BAY",
+      "type_document": "dsp",
+      "date_depot": "2024-11-12",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Christophe CLERGEAU",
+      "type_document": "dspm",
+      "date_depot": "2025-04-18",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Christophe CLERGEAU",
+      "type_document": "dsp",
+      "date_depot": "2024-09-07",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Christophe GOMART",
+      "type_document": "dspm",
+      "date_depot": "2025-05-05",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Christophe GOMART",
+      "type_document": "dsp",
+      "date_depot": "2024-09-06",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Christophe GRUDLER",
+      "type_document": "dspm",
+      "date_depot": "2025-03-25",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Christophe GRUDLER",
+      "type_document": "dsp",
+      "date_depot": "2024-07-23",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Claire FITA",
+      "type_document": "dsp",
+      "date_depot": "2024-08-23",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Damien CARÊME",
+      "type_document": "dsp",
+      "date_depot": "2024-09-08",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "David CORMAND",
+      "type_document": "dspm",
+      "date_depot": "2025-03-14",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "David CORMAND",
+      "type_document": "dsp",
+      "date_depot": "2024-09-11",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Emma FOURREAU",
+      "type_document": "dsp",
+      "date_depot": "2024-09-06",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Emma RAFOWICZ",
+      "type_document": "dsp",
+      "date_depot": "2024-09-13",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Eric SARGIACOMO",
+      "type_document": "dspm",
+      "date_depot": "2024-11-24",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Eric SARGIACOMO",
+      "type_document": "dsp",
+      "date_depot": "2024-09-08",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Fabienne KELLER",
+      "type_document": "dspm",
+      "date_depot": "2025-03-22",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Fabienne KELLER",
+      "type_document": "dsp",
+      "date_depot": "2024-09-07",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Fabrice LEGGERI",
+      "type_document": "dspm",
+      "date_depot": "2025-03-02",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Fabrice LEGGERI",
+      "type_document": "dsp",
+      "date_depot": "2024-08-01",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "France JAMET",
+      "type_document": "dspm",
+      "date_depot": "2025-02-02",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "France JAMET",
+      "type_document": "dsp",
+      "date_depot": "2024-08-14",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "François KALFON",
+      "type_document": "dspm",
+      "date_depot": "2025-04-01",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "François KALFON",
+      "type_document": "dsp",
+      "date_depot": "2024-09-14",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "François-Xavier BELLAMY",
+      "type_document": "dspm",
+      "date_depot": "2024-12-31",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "François-Xavier BELLAMY",
+      "type_document": "dsp",
+      "date_depot": "2024-08-02",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Gilles BOYER",
+      "type_document": "dspm",
+      "date_depot": "2025-06-02",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Gilles BOYER",
+      "type_document": "dsp",
+      "date_depot": "2024-08-18",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Gilles PENNELLE",
+      "type_document": "dspm",
+      "date_depot": "2024-12-16",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Gilles PENNELLE",
+      "type_document": "dsp",
+      "date_depot": "2024-09-13",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Grégory ALLIONE",
+      "type_document": "dspm",
+      "date_depot": "2025-05-27",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Grégory ALLIONE",
+      "type_document": "dsp",
+      "date_depot": "2024-07-22",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Guillaume PELTIER",
+      "type_document": "dspm",
+      "date_depot": "2025-10-14",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Guillaume PELTIER",
+      "type_document": "dspm",
+      "date_depot": "2024-12-05",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Guillaume PELTIER",
+      "type_document": "dsp",
+      "date_depot": "2024-08-01",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Isabelle LE CALLENNEC",
+      "type_document": "dspm",
+      "date_depot": "2025-04-21",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Isabelle LE CALLENNEC",
+      "type_document": "dsp",
+      "date_depot": "2024-08-01",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Jean-Marc GERMAIN",
+      "type_document": "dspm",
+      "date_depot": "2025-02-03",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Jean-Marc GERMAIN",
+      "type_document": "dsp",
+      "date_depot": "2024-09-13",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Jean-Paul GARRAUD",
+      "type_document": "dspm",
+      "date_depot": "2025-01-28",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Jean-Paul GARRAUD",
+      "type_document": "dsp",
+      "date_depot": "2024-08-05",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Jérémy DECERLE",
+      "type_document": "dsp",
+      "date_depot": "2026-01-25",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Jordan BARDELLA",
+      "type_document": "dspm",
+      "date_depot": "2025-07-16",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Jordan BARDELLA",
+      "type_document": "dspm",
+      "date_depot": "2025-03-19",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Jordan BARDELLA",
+      "type_document": "dsp",
+      "date_depot": "2024-09-15",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Julie RECHAGNEUX",
+      "type_document": "dspm",
+      "date_depot": "2025-06-17",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Julie RECHAGNEUX",
+      "type_document": "dsp",
+      "date_depot": "2024-08-13",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Julien LEONARDELLI",
+      "type_document": "dspm",
+      "date_depot": "2025-03-12",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Julien LEONARDELLI",
+      "type_document": "dsp",
+      "date_depot": "2024-09-04",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Julien SANCHEZ",
+      "type_document": "dsp",
+      "date_depot": "2024-09-04",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Laurence FARRENG",
+      "type_document": "dspm",
+      "date_depot": "2025-04-15",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Laurence FARRENG",
+      "type_document": "dsp",
+      "date_depot": "2024-08-31",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Laurence TROCHU",
+      "type_document": "dspm",
+      "date_depot": "2025-11-08",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Laurence TROCHU",
+      "type_document": "dsp",
+      "date_depot": "2024-09-15",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Laurent CASTILLO",
+      "type_document": "dspm",
+      "date_depot": "2025-09-04",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Laurent CASTILLO",
+      "type_document": "dsp",
+      "date_depot": "2024-09-01",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Leila CHAIBI",
+      "type_document": "dspm",
+      "date_depot": "2025-04-05",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Leila CHAIBI",
+      "type_document": "dsp",
+      "date_depot": "2024-09-06",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Majdouline SBAI",
+      "type_document": "dspm",
+      "date_depot": "2025-01-15",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Majdouline SBAI",
+      "type_document": "dsp",
+      "date_depot": "2024-09-17",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Malika SOREL",
+      "type_document": "dspm",
+      "date_depot": "2024-12-11",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Malika SOREL",
+      "type_document": "dsp",
+      "date_depot": "2024-09-13",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Manon AUBRY",
+      "type_document": "dspm",
+      "date_depot": "2025-01-29",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Manon AUBRY",
+      "type_document": "dsp",
+      "date_depot": "2024-09-15",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Marie DAUCHY",
+      "type_document": "dspm",
+      "date_depot": "2025-03-11",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Marie DAUCHY",
+      "type_document": "dsp",
+      "date_depot": "2024-09-13",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Marie TOUSSAINT",
+      "type_document": "dsp",
+      "date_depot": "2024-08-28",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Marie-Luce BRASIER-CLAIN",
+      "type_document": "dspm",
+      "date_depot": "2025-02-20",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Marie-Luce BRASIER-CLAIN",
+      "type_document": "dsp",
+      "date_depot": "2024-07-24",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Marina MESURE",
+      "type_document": "dspm",
+      "date_depot": "2025-01-25",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Marina MESURE",
+      "type_document": "dsp",
+      "date_depot": "2024-07-26",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Marion MARÉCHAL",
+      "type_document": "dspm",
+      "date_depot": "2025-01-27",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Marion MARÉCHAL",
+      "type_document": "dsp",
+      "date_depot": "2024-08-16",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Mathilde ANDROUËT",
+      "type_document": "dspm",
+      "date_depot": "2025-09-05",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Mathilde ANDROUËT",
+      "type_document": "dsp",
+      "date_depot": "2024-09-15",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Matthieu VALET",
+      "type_document": "dsp",
+      "date_depot": "2024-07-25",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Mélanie DISDIER",
+      "type_document": "dspm",
+      "date_depot": "2025-07-25",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Mélanie DISDIER",
+      "type_document": "dsp",
+      "date_depot": "2024-09-09",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Mélissa CAMARA",
+      "type_document": "dspm",
+      "date_depot": "2025-02-20",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Mélissa CAMARA",
+      "type_document": "dsp",
+      "date_depot": "2024-09-16",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Mounir SATOURI",
+      "type_document": "dspm",
+      "date_depot": "2025-01-20",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Mounir SATOURI",
+      "type_document": "dsp",
+      "date_depot": "2024-09-15",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Murielle LAURENT",
+      "type_document": "dspm",
+      "date_depot": "2025-03-09",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Murielle LAURENT",
+      "type_document": "dsp",
+      "date_depot": "2024-09-15",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Nadine MORANO",
+      "type_document": "dspm",
+      "date_depot": "2025-05-04",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Nadine MORANO",
+      "type_document": "dsp",
+      "date_depot": "2024-08-24",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Nathalie LOISEAU",
+      "type_document": "dspm",
+      "date_depot": "2025-02-21",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Nathalie LOISEAU",
+      "type_document": "dsp",
+      "date_depot": "2024-07-25",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Nicolas BAY",
+      "type_document": "dspm",
+      "date_depot": "2025-06-24",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Nicolas BAY",
+      "type_document": "dsp",
+      "date_depot": "2024-07-18",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Nora MEBAREK",
+      "type_document": "dspm",
+      "date_depot": "2025-03-18",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Nora MEBAREK",
+      "type_document": "dsp",
+      "date_depot": "2024-07-24",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Pascal CANFIN",
+      "type_document": "dspm",
+      "date_depot": "2024-12-17",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Pascal CANFIN",
+      "type_document": "dsp",
+      "date_depot": "2024-07-16",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Pascale PIERA",
+      "type_document": "dspm",
+      "date_depot": "2024-12-19",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Pascale PIERA",
+      "type_document": "dsp",
+      "date_depot": "2024-09-04",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Philippe OLIVIER",
+      "type_document": "dspm",
+      "date_depot": "2024-12-12",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Philippe OLIVIER",
+      "type_document": "dsp",
+      "date_depot": "2024-09-02",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Pierre JOUVET",
+      "type_document": "dspm",
+      "date_depot": "2025-04-13",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Pierre JOUVET",
+      "type_document": "dsp",
+      "date_depot": "2024-08-07",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Pierre PIMPIE",
+      "type_document": "dspm",
+      "date_depot": "2025-05-15",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Pierre PIMPIE",
+      "type_document": "dsp",
+      "date_depot": "2024-09-09",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Pierre-Romain THIONNET",
+      "type_document": "dspm",
+      "date_depot": "2025-01-18",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Pierre-Romain THIONNET",
+      "type_document": "dsp",
+      "date_depot": "2024-09-16",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Raphaël GLUCKSMANN",
+      "type_document": "dspm",
+      "date_depot": "2025-06-20",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Raphaël GLUCKSMANN",
+      "type_document": "dsp",
+      "date_depot": "2024-09-16",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Rima HASSAN",
+      "type_document": "dspm",
+      "date_depot": "2025-01-28",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Rima HASSAN",
+      "type_document": "dsp",
+      "date_depot": "2024-09-11",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Rody TOLASSY",
+      "type_document": "dsp",
+      "date_depot": "2024-09-02",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Sandro GOZI",
+      "type_document": "dspm",
+      "date_depot": "2025-06-20",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Sandro GOZI",
+      "type_document": "dsp",
+      "date_depot": "2024-09-05",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Sarah KNAFO",
+      "type_document": "dsp",
+      "date_depot": "2024-08-16",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Séverine WERBROUCK",
+      "type_document": "dsp",
+      "date_depot": "2024-10-07",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Stéphanie YON-COURTIN",
+      "type_document": "dspm",
+      "date_depot": "2025-05-23",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Stéphanie YON-COURTIN",
+      "type_document": "dsp",
+      "date_depot": "2024-08-30",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Thierry MARIANI",
+      "type_document": "dspm",
+      "date_depot": "2025-04-09",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Thierry MARIANI",
+      "type_document": "dsp",
+      "date_depot": "2024-07-24",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Thomas PELLERIN-CARLIN",
+      "type_document": "dspm",
+      "date_depot": "2025-01-08",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Thomas PELLERIN-CARLIN",
+      "type_document": "dsp",
+      "date_depot": "2024-07-31",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Valérie DELOGE",
+      "type_document": "dspm",
+      "date_depot": "2025-02-17",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Valérie DELOGE",
+      "type_document": "dsp",
+      "date_depot": "2024-09-07",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Valérie DEVAUX",
+      "type_document": "dspm",
+      "date_depot": "2025-03-25",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Valérie DEVAUX",
+      "type_document": "dsp",
+      "date_depot": "2024-07-17",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Valérie HAYER",
+      "type_document": "dspm",
+      "date_depot": "2025-03-14",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Valérie HAYER",
+      "type_document": "dsp",
+      "date_depot": "2024-09-05",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Virginie JORON",
+      "type_document": "dspm",
+      "date_depot": "2025-03-17",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Virginie JORON",
+      "type_document": "dsp",
+      "date_depot": "2024-09-05",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Younous OMARJEE",
+      "type_document": "dspm",
+      "date_depot": "2025-01-07",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    },
+    {
+      "politician": "Younous OMARJEE",
+      "type_document": "dsp",
+      "date_depot": "2024-09-09",
+      "status": "Livrée",
+      "note": "HATVP lists a patrimony declaration, but no downloadable public XML appeared in the official merged public asset feed for this person."
+    }
+  ],
+  "sources": {
+    "list": "https://www.hatvp.fr/livraison/opendata/liste.csv",
+    "mergedXml": "https://www.hatvp.fr/livraison/merge/declarations.xml",
+    "dossierBase": "https://www.hatvp.fr/livraison/dossiers"
+  },
+  "generatedAt": "2026-04-30T14:15:33.056Z"
+}

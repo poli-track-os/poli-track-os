@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-04-30",
+  "reviewed_countries": [
+    {
+      "country_code": "AL",
+      "country_name": "Albania",
+      "status": "ingested_curated_secondary",
+      "records_added": 5,
+      "sources_consulted": [
+        {
+          "url": "https://ndiqparate.al/?p=19606&lang=en",
+          "publisher": "Open Data Albania",
+          "result": "Usable salary figures for President, Prime Minister, Speaker, Cabinet ministers, and MPs from April 2023, citing Parliament of Albania."
+        },
+        {
+          "url": "https://data.ipu.org/parliament/AL/AL-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "publisher": "IPU Parline",
+          "result": "Confirmed IPU had no numeric basic-salary export for Albania."
+        }
+      ],
+      "notes": "Rows are trust_level 2 because the article is secondary even though it cites Parliament of Albania."
+    },
+    {
+      "country_code": "AO",
+      "country_name": "Angola",
+      "status": "reviewed_no_ingest",
+      "records_added": 0,
+      "sources_consulted": [
+        {
+          "url": "https://lex.ao/docs/assembleia-nacional/2008/lei-n-o-6-08-de-04-de-julho/",
+          "publisher": "LEX.AO",
+          "result": "Found the organic remuneration framework for deputies, but no current numeric salary amount."
+        },
+        {
+          "url": "https://www.rtp.pt/noticias/mundo/salarios-dos-deputados-angolanos-aumentam-82-por-cento_n756119",
+          "publisher": "RTP/Lusa",
+          "result": "Found a 2014 secondary report on an 8.2 percent increase, but not enough structured current amount/provenance to ingest."
+        },
+        {
+          "url": "https://www.verangola.net/va/pt/022019/Politica/14444/Parlamento-fixa-sal%C3%A1rio-mensal-dos-deputados-em-mais-de-1700-d%C3%B3lares.htm",
+          "publisher": "Ver Angola",
+          "result": "Found a 2019 secondary report saying salary base equivalent to about EUR 1,700, but no official local-currency schedule was found in this pass."
+        }
+      ],
+      "notes": "Hold until an official numeric salary schedule or official gazette resolution is found."
+    },
+    {
+      "country_code": "BB",
+      "country_name": "Barbados",
+      "status": "ingested_official",
+      "records_added": 7,
+      "sources_consulted": [
+        {
+          "url": "https://www.barbadosparliament.com/sittings/details/557",
+          "publisher": "Barbados Parliament",
+          "result": "Official sitting page linked the 2025 Senate and House remuneration order."
+        },
+        {
+          "url": "https://www.barbadosparliament.com/uploads/sittings/attachments/8233502856684d7cfdc9d3aecf921b03.pdf",
+          "publisher": "Barbados Parliament",
+          "result": "Official PDF contains 2024 annual salaries and allowances for House and Senate positions."
+        }
+      ],
+      "notes": "Rows are trust_level 1 because the source is the official Parliament PDF."
+    },
+    {
+      "country_code": "BS",
+      "country_name": "Bahamas",
+      "status": "reviewed_no_ingest",
+      "records_added": 0,
+      "sources_consulted": [
+        {
+          "url": "https://laws.bahamas.gov.bs/cms/images/LEGISLATION/PRINCIPAL/1992/1992-0027/1992-0027.pdf",
+          "publisher": "Bahamas Laws Online",
+          "result": "Found the Parliamentarians (Salaries and Allowances) Act with schedule amounts, but the displayed schedule notes the relevant new columns expired on 30 June 2011."
+        },
+        {
+          "url": "https://data.ipu.org/parliament/BS/BS-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "publisher": "IPU Parline",
+          "result": "Confirmed members are paid salaries but IPU shows no numeric basic-salary amount."
+        }
+      ],
+      "notes": "Hold until a current active salary order or budget schedule is found."
+    },
+    {
+      "country_code": "BY",
+      "country_name": "Belarus",
+      "status": "reviewed_no_ingest",
+      "records_added": 0,
+      "sources_consulted": [
+        {
+          "url": "https://zakony-by.com/zakon_rb_o_gosudarstvennoj_sluzhbe/48.htm",
+          "publisher": "Belarus legislation mirror",
+          "result": "Found legal rule that professional deputies and Council members receive monthly remuneration equal to a minister's wage, but no numeric current minister wage was found."
+        }
+      ],
+      "notes": "Hold until the referenced minister salary scale or an official payroll amount is found."
+    },
+    {
+      "country_code": "CU",
+      "country_name": "Cuba",
+      "status": "reviewed_no_ingest",
+      "records_added": 0,
+      "sources_consulted": [
+        {
+          "url": "https://data.ipu.org/parliament/CU/CU-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "publisher": "IPU Parline",
+          "result": "Found that deputies receive the same remuneration as their workplace during duties, but no uniform numeric parliamentary salary exists in the source."
+        },
+        {
+          "url": "https://www.constituteproject.org/constitution/Cuba_2002",
+          "publisher": "Constitute Project",
+          "result": "Constitution text confirms deputies earn the same salary or pay as at their work center."
+        }
+      ],
+      "notes": "Do not force a fake uniform salary where the public rule says pay follows each deputy's existing workplace remuneration."
+    },
+    {
+      "country_code": "DM",
+      "country_name": "Dominica",
+      "status": "reviewed_no_ingest",
+      "records_added": 0,
+      "sources_consulted": [
+        {
+          "url": "https://www.constituteproject.org/constitution/Dominica_2014",
+          "publisher": "Constitute Project",
+          "result": "Found constitutional basis that salaries and allowances are prescribed by law, but no current numeric parliamentary schedule was found."
+        }
+      ],
+      "notes": "Hold until the active Dominica parliamentary salaries law or estimates schedule is located."
+    },
+    {
+      "country_code": "GA",
+      "country_name": "Gabon",
+      "status": "reviewed_no_ingest",
+      "records_added": 0,
+      "sources_consulted": [
+        {
+          "url": "https://gaboninfoslive.com/2023/10/20/traitements-salaires-et-budgets-dedies-aux-deputes-et-senateurs/",
+          "publisher": "Gabon Infos Live",
+          "result": "Found a secondary report claiming FCFA 51 million per year for deputies/senators, but not an official schedule."
+        },
+        {
+          "url": "https://archive.ipu.org/parline/reports/2115.htm",
+          "publisher": "IPU archive",
+          "result": "Found old archived IPU figure in French francs plus session allowance; too stale for current ingestion."
+        }
+      ],
+      "notes": "Hold until an official National Assembly/Senate or finance-law schedule is found."
+    },
+    {
+      "country_code": "GN",
+      "country_name": "Guinea",
+      "status": "reviewed_no_ingest",
+      "records_added": 0,
+      "sources_consulted": [
+        {
+          "url": "https://data.ipu.org/parliament/GN/GN-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "publisher": "IPU Parline",
+          "result": "IPU country was in the no-row queue; no usable numeric remuneration source was found in this pass."
+        }
+      ],
+      "notes": "Continue with Guinea official transition council/budget sources."
+    },
+    {
+      "country_code": "GW",
+      "country_name": "Guinea-Bissau",
+      "status": "reviewed_no_ingest",
+      "records_added": 0,
+      "sources_consulted": [
+        {
+          "url": "https://data.ipu.org/parliament/GW/GW-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "publisher": "IPU Parline",
+          "result": "IPU country was in the no-row queue; no usable numeric remuneration source was found in this pass."
+        }
+      ],
+      "notes": "Continue with Assembleia Nacional Popular or state budget/payroll sources."
+    },
+    {
+      "country_code": "HN",
+      "country_name": "Honduras",
+      "status": "ingested_official",
+      "records_added": 12,
+      "sources_consulted": [
+        {
+          "url": "https://portalunico.iaip.gob.hn/383/7/",
+          "publisher": "Portal Unico de Transparencia / IAIP Honduras",
+          "result": "Official portal lists February 2026 'REMUNERACION A DIPUTADOS' for Congreso Nacional."
+        },
+        {
+          "url": "https://portalunico.iaip.gob.hn/ver_archivo/MjYzMDI3Mw%3D%3D",
+          "publisher": "Congreso Nacional de Honduras",
+          "result": "Scanned official PDF table gives assigned monthly salaries for President, vice president tiers, alternate vice presidents, secretaries, pro-secretaries, deputies, and alternate deputies."
+        }
+      ],
+      "notes": "Rows are trust_level 1 because the source is the official transparency portal and signed/stamped Congreso Nacional PDF."
+    },
+    {
+      "country_code": "LC",
+      "country_name": "Saint Lucia",
+      "status": "ingested_curated_secondary",
+      "records_added": 9,
+      "sources_consulted": [
+        {
+          "url": "https://www.cpahq.org/media/1z3fwmeu/cpa-members-remuneration-report-2020-2021-final.pdf",
+          "publisher": "Commonwealth Parliamentary Association",
+          "result": "Usable Saint Lucia survey response with exact 2020-2021 annual amounts for Cabinet minister, non-Cabinet minister, Prime Minister as Leader of the House, Leader of the Opposition, Speaker, Deputy Speaker, senators, Senate President, and Senate Deputy President."
+        },
+        {
+          "url": "https://data.ipu.org/parliament/LC/LC-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "publisher": "IPU Parline",
+          "result": "Confirmed IPU had no numeric basic-salary export for Saint Lucia."
+        }
+      ],
+      "notes": "Rows are trust_level 2 because CPA is a reputable structured secondary survey source. The lower-house ordinary member salary was 'Not answered' in the CPA report and was not imputed."
+    },
+    {
+      "country_code": "IR",
+      "country_name": "Iran",
+      "status": "reviewed_no_ingest",
+      "records_added": 0,
+      "sources_consulted": [
+        {
+          "url": "https://factnameh.com/fa/fact-checks/2024-02-14-iran-parliament-representative-salary",
+          "publisher": "Factnameh",
+          "result": "Found a fact-check estimating legal ceilings and allowances, but not an official exact salary schedule."
+        }
+      ],
+      "notes": "Hold until an official Majles payroll/rules source with exact amounts is found."
+    },
+    {
+      "country_code": "SV",
+      "country_name": "El Salvador",
+      "status": "ingested_official",
+      "records_added": 5,
+      "sources_consulted": [
+        {
+          "url": "https://transparencia.asamblea.gob.sv/node/2067",
+          "publisher": "Asamblea Legislativa de El Salvador transparency portal",
+          "result": "Official transparency page links the 2023 salary-law PDF for the Legislative Assembly."
+        },
+        {
+          "url": "https://transparencia.asamblea.gob.sv/sites/default/files/2023-03/Ley_de_Salarios_para_el%20Ejercicio_Financiero_Fiscal_2023.pdf",
+          "publisher": "Asamblea Legislativa de El Salvador",
+          "result": "Official salary-law PDF gives monthly salary, representation, and transport/communication totals for President, Vice Presidents, Secretaries, parliamentary group coordinators, and deputies."
+        }
+      ],
+      "notes": "Rows are trust_level 1. The amount field stores the PDF's monthly total compensation for each role, not salary-only base pay."
+    },
+    {
+      "country_code": "WS",
+      "country_name": "Samoa",
+      "status": "ingested_official",
+      "records_added": 7,
+      "sources_consulted": [
+        {
+          "url": "https://www.mof.gov.ws/publications/budget-fiscal-policy/budget-estimate",
+          "publisher": "Samoa Ministry of Finance",
+          "result": "Official budget-estimate page links the FY2025-2026 approved budget document."
+        },
+        {
+          "url": "https://cdn.prod.website-files.com/67a155f272e2c5aeb2caf892/6931f23f8d33576d85bdd11f_Approved%20Budget%20Document%20FY25-26%20English%20FINAL.pdf",
+          "publisher": "Samoa Ministry of Finance",
+          "result": "Official approved budget statutory-payments section gives annual base salary plus allowance totals for Head of State, Prime Minister, Deputy Prime Minister, Speaker, Deputy Speaker, Leader of Opposition, and Deputy Leader of Opposition."
+        }
+      ],
+      "notes": "Rows are trust_level 1. Aggregate totals for ministers, associate ministers, and ordinary MPs were not divided into inferred per-person amounts."
+    },
+    {
+      "country_code": "TV",
+      "country_name": "Tuvalu",
+      "status": "ingested_official",
+      "records_added": 5,
+      "sources_consulted": [
+        {
+          "url": "https://tuvalu-legislation.tv/cms/images/LEGISLATION/PRINCIPAL/1978/1978-0003/1978-0003_2.pdf",
+          "publisher": "Tuvalu Legislation",
+          "result": "Official Prescription of Salaries Act 2022 Revised Edition Schedule 17 gives taxable salary amounts for Governor-General, Prime Minister, Speaker, Ministers, and Members of Parliament."
+        },
+        {
+          "url": "https://data.ipu.org/parliament/TV/TV-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "publisher": "IPU Parline",
+          "result": "Confirmed IPU had no numeric basic-salary export for Tuvalu."
+        }
+      ],
+      "notes": "Rows are trust_level 1. Currency is stored as AUD because Tuvalu uses Australian dollars alongside the Tuvaluan dollar."
+    },
+    {
+      "country_code": "KI",
+      "country_name": "Kiribati",
+      "status": "reviewed_no_ingest",
+      "records_added": 0,
+      "sources_consulted": [
+        {
+          "url": "https://www.mfed.gov.ki/sites/default/files/2025-06/2025%20RB%20AS%20APPROVED.pdf",
+          "publisher": "Kiribati Ministry of Finance and Economic Development",
+          "result": "Found the 2025 recurrent budget with aggregate statutory salary lines, but no explicit per-office parliamentary salary schedule."
+        },
+        {
+          "url": "https://data.ipu.org/parliament/KI/KI-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "publisher": "IPU Parline",
+          "result": "Confirmed IPU had no numeric basic-salary export for Kiribati."
+        }
+      ],
+      "notes": "Hold until an official Maneaba or salary-determination source gives exact per-role amounts."
+    },
+    {
+      "country_code": "KM",
+      "country_name": "Comoros",
+      "status": "ingested_official",
+      "records_added": 1,
+      "sources_consulted": [
+        {
+          "url": "https://justice.gouv.km/texte/loi-organique-n05-004-au-du-3-mars-2005-portant-fixation-des-indemnites-des-deputes-de-lassemblee-de-lunion-des-comores/",
+          "publisher": "Comoros Ministry of Justice",
+          "result": "Official legislation page links the Organic Law 05-004/AU PDF fixing deputy indemnities."
+        },
+        {
+          "url": "https://justice.gouv.km/wp-content/uploads/2025/03/loi-organique-n-05-004au-du-3-mars-2005-portant-fixation-des-indemnites-des-deputes-de-lassemblee-de-lunion-des-comores.pdf",
+          "publisher": "Comoros Ministry of Justice",
+          "result": "Official PDF states the monthly base indemnity for deputies of the Assembly of the Union is KMF 500,000."
+        }
+      ],
+      "notes": "Rows are trust_level 1. Only the base monthly indemnity is ingested; separately determined specific advantages are not quantified in the source."
+    },
+    {
+      "country_code": "KZ",
+      "country_name": "Kazakhstan",
+      "status": "reviewed_no_ingest",
+      "records_added": 0,
+      "sources_consulted": [
+        {
+          "url": "https://www.parlam.kz/en/Home/OpenFile?culture=en&npaId=2&speechId=",
+          "publisher": "Parliament of Kazakhstan",
+          "result": "Official constitutional law text says deputy salaries are set by the President, but this source does not provide current numeric amounts."
+        },
+        {
+          "url": "https://adilet.zan.kz/eng/docs/K950001000_",
+          "publisher": "Adilet legal information system",
+          "result": "Official legal source confirms institutional framework but no current salary table was found in this pass."
+        }
+      ],
+      "notes": "Hold until the presidential salary-setting act or official payroll/budget table with numeric deputy amounts is found."
+    },
+    {
+      "country_code": "PA",
+      "country_name": "Panama",
+      "status": "reviewed_no_ingest",
+      "records_added": 0,
+      "sources_consulted": [
+        {
+          "url": "https://asamblea.gob.pa/Page/Transparencia?Menu-Type=NavBar",
+          "publisher": "Asamblea Nacional de Panama",
+          "result": "Transparency page search snippets show 'Articulo 11.3 Planilla', but direct retrieval redirected to the homepage and did not expose the planilla file URL."
+        },
+        {
+          "url": "https://www.asamblea.gob.pa/Noticias/Noticias/Asamblea-Nacional-aclara-informacion-sobre-planilla",
+          "publisher": "Asamblea Nacional de Panama",
+          "result": "Official news item confirms the planilla data exists on the website, but it does not contain a parliamentary office salary schedule."
+        }
+      ],
+      "notes": "Hold until the current Article 11.3 planilla file URL or another official salary table is retrievable."
+    }
+  ]
+}

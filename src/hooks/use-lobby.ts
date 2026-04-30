@@ -2,6 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 
+type QueryResult<T> = Promise<{ data: T | null; error: Error | null }>;
+type RegistryQuery = {
+  select: (columns?: string) => RegistryQuery;
+  maybeSingle: () => QueryResult<unknown>;
+  limit: (count: number) => QueryResult<unknown[]>;
+};
+const registryDb = supabase as unknown as { from: (table: string) => RegistryQuery };
+
 export type LobbyOrganisationRow = Tables<'lobby_organisations'>;
 export type LobbySpendRow = Tables<'lobby_spend'>;
 export type LobbyMeetingRow = Tables<'lobby_meetings'>;
@@ -9,6 +17,54 @@ export type LobbyMeetingRow = Tables<'lobby_meetings'>;
 export interface LobbyOrganisationWithSpend extends LobbyOrganisationRow {
   latestSpend: number | null;
   latestSpendYear: number | null;
+}
+
+interface InfluenceRegistryOverview {
+  filings_total: number;
+  clients_total: number;
+  actors_total: number;
+  companies_total: number;
+  contacts_total: number;
+  money_rows_total: number;
+  recorded_amount_total: number | string | null;
+}
+
+interface LobbyInfluenceClient {
+  id: string;
+  name: string;
+  principal_country_code: string | null;
+  sector: string | null;
+  source_url: string | null;
+}
+
+interface LobbyInfluenceMoney {
+  payer_client_id: string | null;
+  amount_low: number | string | null;
+  amount_high: number | string | null;
+  amount_exact: number | string | null;
+  currency: string | null;
+}
+
+interface LobbyInfluenceContact {
+  target_institution: string | null;
+  target_name: string | null;
+}
+
+export interface LobbyInfluenceSummary {
+  overview: InfluenceRegistryOverview | null;
+  topInfluenceSpenders: Array<{
+    id: string;
+    name: string;
+    amount: number;
+    principalCountryCode: string | null;
+    sector: string | null;
+    sourceUrl: string | null;
+  }>;
+  topInfluenceTargets: Array<{ name: string; count: number }>;
+}
+
+function disclosedAmount(row: LobbyInfluenceMoney): number {
+  return Number(row.amount_exact ?? row.amount_high ?? row.amount_low ?? 0);
 }
 
 // Top organisations by latest spend, joined with their latest spend row.
@@ -115,5 +171,70 @@ export function useTotalLobbyOrgs() {
       if (error) throw error;
       return count ?? 0;
     },
+    staleTime: 1000 * 60 * 60,
+  });
+}
+
+export function useLobbyInfluenceSummary() {
+  return useQuery({
+    queryKey: ['lobby-influence-summary'],
+    queryFn: async (): Promise<LobbyInfluenceSummary> => {
+      const [overviewRes, clientsRes, moneyRes, contactsRes] = await Promise.all([
+        registryDb.from('influence_registry_overview').select('*').maybeSingle(),
+        registryDb
+          .from('influence_clients')
+          .select('id, name, principal_country_code, sector, source_url')
+          .limit(1000),
+        registryDb
+          .from('influence_money')
+          .select('payer_client_id, amount_low, amount_high, amount_exact, currency')
+          .limit(1000),
+        registryDb
+          .from('influence_contacts')
+          .select('target_institution, target_name')
+          .limit(1000),
+      ]);
+
+      if (overviewRes.error) throw overviewRes.error;
+      if (clientsRes.error) throw clientsRes.error;
+      if (moneyRes.error) throw moneyRes.error;
+      if (contactsRes.error) throw contactsRes.error;
+
+      const clients = (clientsRes.data || []) as LobbyInfluenceClient[];
+      const clientById = new Map(clients.map((client) => [client.id, client]));
+      const spendByClient = new Map<string, LobbyInfluenceSummary['topInfluenceSpenders'][number]>();
+
+      for (const row of (moneyRes.data || []) as LobbyInfluenceMoney[]) {
+        if (!row.payer_client_id) continue;
+        const client = clientById.get(row.payer_client_id);
+        if (!client) continue;
+        const existing = spendByClient.get(client.id) || {
+          id: client.id,
+          name: client.name,
+          amount: 0,
+          principalCountryCode: client.principal_country_code,
+          sector: client.sector,
+          sourceUrl: client.source_url,
+        };
+        existing.amount += disclosedAmount(row);
+        spendByClient.set(client.id, existing);
+      }
+
+      const targetCounts = new Map<string, { name: string; count: number }>();
+      for (const row of (contactsRes.data || []) as LobbyInfluenceContact[]) {
+        const name = row.target_institution || row.target_name;
+        if (!name) continue;
+        targetCounts.set(name, { name, count: (targetCounts.get(name)?.count || 0) + 1 });
+      }
+
+      return {
+        overview: (overviewRes.data as InfluenceRegistryOverview | null) || null,
+        topInfluenceSpenders: [...spendByClient.values()].sort((a, b) => b.amount - a.amount).slice(0, 8),
+        topInfluenceTargets: [...targetCounts.values()].sort((a, b) => b.count - a.count).slice(0, 8),
+      };
+    },
+    staleTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }

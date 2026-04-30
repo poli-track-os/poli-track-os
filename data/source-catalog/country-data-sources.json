@@ -1,0 +1,1050 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-04-30",
+  "purpose": "Canonical websites and machine-readable endpoints to consult when enriching country-level political data in poli-track-os.",
+  "trust_policy": {
+    "1": "Official government, parliament, regulator, or intergovernmental data source.",
+    "2": "Curated secondary dataset that links back to official or reputable sources.",
+    "3": "Media or derived source; use only when official data is missing and keep source notes.",
+    "4": "Unreviewed or inferred data; do not expose publicly without review."
+  },
+  "global_sources": [
+    {
+      "category": "eu_people_roster",
+      "label": "European Parliament MEP full-list XML",
+      "url": "https://www.europarl.europa.eu/meps/en/full-list/xml",
+      "trust_level": 1,
+      "existing_script": "scripts/backfill-eu-parliament-profiles.ts"
+    },
+    {
+      "category": "eu_pay",
+      "label": "European Parliament salary and allowances rules",
+      "url": "https://www.europarl.europa.eu/meps/en/about/meps",
+      "trust_level": 1,
+      "existing_script": "scripts/backfill-ep-mep-salaries.ts"
+    },
+    {
+      "category": "eu_financial_disclosures",
+      "label": "European Parliament per-MEP declarations of private interests",
+      "url": "https://www.europarl.europa.eu/meps/en/full-list/all",
+      "url_template": "https://www.europarl.europa.eu/meps/en/{mep_id}/{mep_slug}/declarations",
+      "trust_level": 1,
+      "existing_script": "scripts/extract-mep-financial-disclosures.ts"
+    },
+    {
+      "category": "parliament_pay_history",
+      "label": "IPU Parline parliamentary mandate data",
+      "url": "https://data.ipu.org/",
+      "export_url_template": "https://data.ipu.org/export-historical/basic_salary/{chamber_id}/csv",
+      "trust_level": 1,
+      "planned_script": "scripts/sync-office-compensation.ts"
+    },
+    {
+      "category": "leader_pay_curated",
+      "label": "PoliticalSalaries leaders Datawrapper CSV",
+      "url": "https://datawrapper.dwcdn.net/CpDI9/1/dataset.csv",
+      "notes_url": "https://politicalsalaries.com/about-the-data/",
+      "trust_level": 2,
+      "planned_script": "scripts/sync-office-compensation.ts"
+    },
+    {
+      "category": "legislator_pay_curated",
+      "label": "PoliticalSalaries legislators Datawrapper CSV",
+      "url": "https://datawrapper.dwcdn.net/hY5bQ/1/dataset.csv",
+      "notes_url": "https://politicalsalaries.com/about-the-data/",
+      "trust_level": 2,
+      "planned_script": "scripts/sync-office-compensation.ts"
+    },
+    {
+      "category": "eu_lobbying",
+      "label": "EU Transparency Register",
+      "url": "https://transparency-register.europa.eu/index_en",
+      "trust_level": 1,
+      "existing_script": "scripts/sync-eu-transparency.ts"
+    },
+    {
+      "category": "eu_lobbying_secondary",
+      "label": "LobbyFacts",
+      "url": "https://www.lobbyfacts.eu/",
+      "trust_level": 2,
+      "existing_script": "scripts/sync-lobbyfacts.ts"
+    },
+    {
+      "category": "company_registry",
+      "label": "OpenCorporates",
+      "url": "https://opencorporates.com/",
+      "trust_level": 2,
+      "existing_script": "scripts/sync-opencorporates.ts"
+    },
+    {
+      "category": "sanctions_pep",
+      "label": "OpenSanctions datasets",
+      "url": "https://www.opensanctions.org/datasets/",
+      "trust_level": 2,
+      "existing_script": "scripts/sync-opensanctions.ts"
+    },
+    {
+      "category": "identity_aliases",
+      "label": "Wikidata SPARQL endpoint",
+      "url": "https://query.wikidata.org/sparql",
+      "trust_level": 2,
+      "existing_script": "scripts/sync-public-affiliations.ts"
+    }
+  ],
+  "countries": {
+    "AT": {
+      "name": "Austria",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Parlament Osterreich open-data filter endpoint",
+          "url": "https://www.parlament.gv.at/Filter/api/filter/data/101?js=eval&showAll=true",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-parlament-at.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "lower_house_pay_history",
+          "label": "IPU Parline Austria National Council basic salary",
+          "chamber_id": "AT-LC01",
+          "url": "https://data.ipu.org/parliament/AT/AT-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/AT-LC01/csv",
+          "trust_level": 1
+        },
+        {
+          "category": "upper_house_pay_history",
+          "label": "IPU Parline Austria Federal Council basic salary",
+          "chamber_id": "AT-UC01",
+          "url": "https://data.ipu.org/parliament/AT/AT-UC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/AT-UC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "BE": {
+      "name": "Belgium",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "La Chambre XML corpus",
+          "url": "https://www.lachambre.be/FLWB/xml/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-lachambre-be.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "lower_house_pay_history",
+          "label": "IPU Parline Belgium House of Representatives basic salary",
+          "chamber_id": "BE-LC01",
+          "url": "https://data.ipu.org/parliament/BE/BE-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/BE-LC01/csv",
+          "trust_level": 1
+        },
+        {
+          "category": "upper_house_pay_history",
+          "label": "IPU Parline Belgium Senate basic salary",
+          "chamber_id": "BE-UC01",
+          "url": "https://data.ipu.org/parliament/BE/BE-UC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/BE-UC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "BG": {
+      "name": "Bulgaria",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Bulgarian National Assembly bills API",
+          "url": "https://www.parliament.bg/api/v1/fn-bills",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-parliament-bg.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Bulgaria National Assembly basic salary",
+          "chamber_id": "BG-LC01",
+          "url": "https://data.ipu.org/parliament/BG/BG-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/BG-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "CY": {
+      "name": "Cyprus",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "House of Representatives legislative deposit pages",
+          "url": "https://www.parliament.cy/el/%CE%BD%CE%BF%CE%BC%CE%BF%CE%B8%CE%B5%CF%84%CE%B9%CE%BA%CF%8C-%CE%AD%CF%81%CE%B3%CE%BF/%CE%BA%CE%B1%CF%84%CE%AC%CE%B8%CE%B5%CF%83%CE%B7-%CE%BD%CE%BF%CE%BC%CE%BF%CF%83%CF%87%CE%B5%CE%B4%CE%AF%CF%89%CE%BD-%CE%BA%CE%B1%CE%B9-%CE%B5%CE%B3%CE%B3%CF%81%CE%AC%CF%86%CF%89%CE%BD",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-curated-budget-archives.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Cyprus House of Representatives basic salary",
+          "chamber_id": "CY-LC01",
+          "url": "https://data.ipu.org/parliament/CY/CY-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/CY-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "CZ": {
+      "name": "Czechia",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Chamber of Deputies parliamentary prints",
+          "url": "https://www.psp.cz/sqw/tisky.sqw?F=H&N=1&O=10&PT=D",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-psp-cz.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "lower_house_pay_history",
+          "label": "IPU Parline Czech Chamber of Deputies basic salary",
+          "chamber_id": "CZ-LC01",
+          "url": "https://data.ipu.org/parliament/CZ/CZ-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/CZ-LC01/csv",
+          "trust_level": 1
+        },
+        {
+          "category": "upper_house_pay_history",
+          "label": "IPU Parline Czech Senate basic salary",
+          "chamber_id": "CZ-UC01",
+          "url": "https://data.ipu.org/parliament/CZ/CZ-UC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/CZ-UC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "DE": {
+      "name": "Germany",
+      "primary_sources": [
+        {
+          "category": "people_roster",
+          "label": "Bundestag open data member master-data ZIP",
+          "url": "https://www.bundestag.de/open-data-inhalt-472740",
+          "dataset_url": "https://www.bundestag.de/resource/blob/472878/MdB-Stammdaten.zip",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-official-rosters.ts"
+        },
+        {
+          "category": "legislation",
+          "label": "Bundestag DIP API",
+          "url": "https://search.dip.bundestag.de/api/v1/vorgang",
+          "docs_url": "https://dip.bundestag.api.bund.dev/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-bundestag-dip.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "official_pay_page",
+          "label": "Bundestag members remuneration page",
+          "url": "https://www.bundestag.de/abgeordnete/mdb_diaeten/mdb_diaeten-214848",
+          "trust_level": 1
+        },
+        {
+          "category": "lower_house_pay_history",
+          "label": "IPU Parline Germany Bundestag basic salary",
+          "chamber_id": "DE-LC01",
+          "url": "https://data.ipu.org/parliament/DE/DE-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/DE-LC01/csv",
+          "trust_level": 1
+        },
+        {
+          "category": "upper_house_pay_history",
+          "label": "IPU Parline Germany Bundesrat basic salary",
+          "chamber_id": "DE-UC01",
+          "url": "https://data.ipu.org/parliament/DE/DE-UC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/DE-UC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "DK": {
+      "name": "Denmark",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Folketing OData Sag endpoint",
+          "url": "https://oda.ft.dk/api/Sag",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-folketinget.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Denmark Folketing basic salary",
+          "chamber_id": "DK-LC01",
+          "url": "https://data.ipu.org/parliament/DK/DK-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/DK-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "EE": {
+      "name": "Estonia",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Riigikogu draft API",
+          "url": "https://api.riigikogu.ee/api/volumes/drafts",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-riigikogu.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "official_pay_page",
+          "label": "Riigikogu salaries of MPs",
+          "url": "https://www.riigikogu.ee/en/parliament-of-estonia/composition/salaries-of-mps/",
+          "trust_level": 1
+        },
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Estonia Riigikogu basic salary",
+          "chamber_id": "EE-LC01",
+          "url": "https://data.ipu.org/parliament/EE/EE-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/EE-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "ES": {
+      "name": "Spain",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Congreso open-data initiatives",
+          "url": "https://www.congreso.es/webpublica/opendata/iniciativas/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-congreso-es.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "lower_house_pay_history",
+          "label": "IPU Parline Spain Congress of Deputies basic salary",
+          "chamber_id": "ES-LC01",
+          "url": "https://data.ipu.org/parliament/ES/ES-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/ES-LC01/csv",
+          "trust_level": 1
+        },
+        {
+          "category": "upper_house_pay_history",
+          "label": "IPU Parline Spain Senate basic salary",
+          "chamber_id": "ES-UC01",
+          "url": "https://data.ipu.org/parliament/ES/ES-UC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/ES-UC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "FI": {
+      "name": "Finland",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Eduskunta open-data Vaski feed",
+          "url": "https://avoindata.eduskunta.fi/api/v1/vaski/asiakirjatyyppinimi?filter=Hallituksen%20esitys",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-eduskunta.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Finland Parliament basic salary",
+          "chamber_id": "FI-LC01",
+          "url": "https://data.ipu.org/parliament/FI/FI-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/FI-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "FR": {
+      "name": "France",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Assemblee nationale legislative dossiers",
+          "url": "https://www.assemblee-nationale.fr/dyn/17/dossiers",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-assemblee-nationale.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "lower_house_pay_history",
+          "label": "IPU Parline France National Assembly basic salary",
+          "chamber_id": "FR-LC01",
+          "url": "https://data.ipu.org/parliament/FR/FR-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/FR-LC01/csv",
+          "trust_level": 1
+        },
+        {
+          "category": "upper_house_pay_history",
+          "label": "IPU Parline France Senate basic salary",
+          "chamber_id": "FR-UC01",
+          "url": "https://data.ipu.org/parliament/FR/FR-UC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/FR-UC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "GR": {
+      "name": "Greece",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Hellenic Parliament submitted bills",
+          "url": "https://www.hellenicparliament.gr/Nomothetiko-Ergo/Katatethenta-Nomosxedia",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-hellenic-parliament.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Greece Hellenic Parliament basic salary",
+          "chamber_id": "GR-LC01",
+          "url": "https://data.ipu.org/parliament/GR/GR-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/GR-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "HR": {
+      "name": "Croatia",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Croatian Sabor e-doc acts",
+          "url": "https://edoc.sabor.hr/Akti.aspx",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-sabor-hr.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Croatia Sabor basic salary",
+          "chamber_id": "HR-LC01",
+          "url": "https://data.ipu.org/parliament/HR/HR-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/HR-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "HU": {
+      "name": "Hungary",
+      "primary_sources": [
+        {
+          "category": "budget_legislation",
+          "label": "Orszaggyules curated central-budget bill PDF",
+          "url": "https://www.parlament.hu/irom42/11864/11864.pdf",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-curated-budget-archives.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Hungary National Assembly basic salary",
+          "chamber_id": "HU-LC01",
+          "url": "https://data.ipu.org/parliament/HU/HU-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/HU-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "IE": {
+      "name": "Ireland",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Oireachtas legislation API",
+          "url": "https://api.oireachtas.ie/v1/legislation",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-oireachtas.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "official_pay_page",
+          "label": "Oireachtas salaries and allowances",
+          "url": "https://www.oireachtas.ie/en/members/salaries-and-allowances/salaries/",
+          "trust_level": 1
+        },
+        {
+          "category": "lower_house_pay_history",
+          "label": "IPU Parline Ireland Dail Eireann basic salary",
+          "chamber_id": "IE-LC01",
+          "url": "https://data.ipu.org/parliament/IE/IE-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/IE-LC01/csv",
+          "trust_level": 1
+        },
+        {
+          "category": "upper_house_pay_history",
+          "label": "IPU Parline Ireland Seanad basic salary",
+          "chamber_id": "IE-UC01",
+          "url": "https://data.ipu.org/parliament/IE/IE-UC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/IE-UC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "IT": {
+      "name": "Italy",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Camera dei deputati open data SPARQL",
+          "url": "https://dati.camera.it/sparql",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-camera-atti.ts"
+        },
+        {
+          "category": "legislation",
+          "label": "Senato open data SPARQL",
+          "url": "https://dati.senato.it/sparql",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-senato-ddl.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "lower_house_pay_history",
+          "label": "IPU Parline Italy Chamber of Deputies basic salary",
+          "chamber_id": "IT-LC01",
+          "url": "https://data.ipu.org/parliament/IT/IT-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/IT-LC01/csv",
+          "trust_level": 1
+        },
+        {
+          "category": "upper_house_pay_history",
+          "label": "IPU Parline Italy Senate basic salary",
+          "chamber_id": "IT-UC01",
+          "url": "https://data.ipu.org/parliament/IT/IT-UC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/IT-UC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "LT": {
+      "name": "Lithuania",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "e-Seimas legislative search",
+          "url": "https://e-seimas.lrs.lt/portal/prefilledSearch/lt/d228346c-54b5-41cd-9eca-8044654a0f7f",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-eseimas-lt.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Lithuania Seimas basic salary",
+          "chamber_id": "LT-LC01",
+          "url": "https://data.ipu.org/parliament/LT/LT-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/LT-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "LU": {
+      "name": "Luxembourg",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Chambre des Deputes data.public.lu law proposals dataset",
+          "url": "https://data.public.lu/fr/datasets/r/c5a74c97-a5fa-42ec-90d7-a832ab7410b2",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-chd-lu.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Luxembourg Chamber of Deputies basic salary",
+          "chamber_id": "LU-LC01",
+          "url": "https://data.ipu.org/parliament/LU/LU-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/LU-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "LV": {
+      "name": "Latvia",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Saeima LIVS registry",
+          "url": "https://titania.saeima.lv/LIVS14/saeimalivs14.nsf/webAll?OpenView",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-saeima-lv.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Latvia Saeima basic salary",
+          "chamber_id": "LV-LC01",
+          "url": "https://data.ipu.org/parliament/LV/LV-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/LV-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "MT": {
+      "name": "Malta",
+      "primary_sources": [
+        {
+          "category": "budget_legislation",
+          "label": "Parliament of Malta budget measures bill archive",
+          "url": "https://parlament.mt/14th-leg/bills/bill-155-budget-measures-implementation-bill/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-curated-budget-archives.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Malta House of Representatives basic salary",
+          "chamber_id": "MT-LC01",
+          "url": "https://data.ipu.org/parliament/MT/MT-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/MT-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "NL": {
+      "name": "Netherlands",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Tweede Kamer OData Zaak endpoint",
+          "url": "https://gegevensmagazijn.tweedekamer.nl/OData/v4/2.0/Zaak",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-tweedekamer.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "lower_house_pay_history",
+          "label": "IPU Parline Netherlands House of Representatives basic salary",
+          "chamber_id": "NL-LC01",
+          "url": "https://data.ipu.org/parliament/NL/NL-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/NL-LC01/csv",
+          "trust_level": 1
+        },
+        {
+          "category": "upper_house_pay_history",
+          "label": "IPU Parline Netherlands Senate basic salary",
+          "chamber_id": "NL-UC01",
+          "url": "https://data.ipu.org/parliament/NL/NL-UC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/NL-UC01/csv",
+          "trust_level": 1,
+          "notes": "The current IPU CSV endpoint exists but may be empty; fall back to the page and official Senate sources when needed."
+        }
+      ]
+    },
+    "PL": {
+      "name": "Poland",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Sejm API prints",
+          "url": "https://api.sejm.gov.pl/sejm/term10/prints",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-sejm.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "lower_house_pay_history",
+          "label": "IPU Parline Poland Sejm basic salary",
+          "chamber_id": "PL-LC01",
+          "url": "https://data.ipu.org/parliament/PL/PL-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/PL-LC01/csv",
+          "trust_level": 1
+        },
+        {
+          "category": "upper_house_pay_history",
+          "label": "IPU Parline Poland Senate basic salary",
+          "chamber_id": "PL-UC01",
+          "url": "https://data.ipu.org/parliament/PL/PL-UC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/PL-UC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "PT": {
+      "name": "Portugal",
+      "primary_sources": [
+        {
+          "category": "people_roster",
+          "label": "Assembleia da Republica current deputies",
+          "url": "https://www.parlamento.pt/DeputadoGP/Paginas/Deputados_ef.aspx",
+          "open_data_url": "https://www.parlamento.pt/Cidadania/Paginas/DARegistoBiografico.aspx",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-official-rosters.ts"
+        },
+        {
+          "category": "legislation",
+          "label": "Parlamento PT initiatives via Voto Aberto API",
+          "url": "https://api.votoaberto.org/api/v1/iniciativas/",
+          "trust_level": 2,
+          "existing_script": "scripts/sync-parlamento-pt.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "official_pay_page",
+          "label": "Assembleia da Republica deputies remuneration annex",
+          "url": "https://www.parlamento.pt/DeputadoGP/Paginas/EstatutoRemuneratorioDeputados_anexo.aspx",
+          "trust_level": 1
+        },
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Portugal Assembly of the Republic basic salary",
+          "chamber_id": "PT-LC01",
+          "url": "https://data.ipu.org/parliament/PT/PT-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/PT-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "RO": {
+      "name": "Romania",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Senate legislative search",
+          "url": "https://www.senat.ro/Legis/Lista.aspx",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-senat-ro.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "lower_house_pay_history",
+          "label": "IPU Parline Romania Chamber of Deputies basic salary",
+          "chamber_id": "RO-LC01",
+          "url": "https://data.ipu.org/parliament/RO/RO-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/RO-LC01/csv",
+          "trust_level": 1
+        },
+        {
+          "category": "upper_house_pay_history",
+          "label": "IPU Parline Romania Senate basic salary",
+          "chamber_id": "RO-UC01",
+          "url": "https://data.ipu.org/parliament/RO/RO-UC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/RO-UC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "SE": {
+      "name": "Sweden",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Riksdag open data document list",
+          "url": "https://data.riksdagen.se/dokumentlista/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-riksdag.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Sweden Riksdag basic salary",
+          "chamber_id": "SE-LC01",
+          "url": "https://data.ipu.org/parliament/SE/SE-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/SE-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "SI": {
+      "name": "Slovenia",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "Drzavni zbor open-data proposals XML",
+          "url": "https://fotogalerija.dz-rs.si/datoteke/opendata/PZ.XML",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-dz-rs.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "lower_house_pay_history",
+          "label": "IPU Parline Slovenia National Assembly basic salary",
+          "chamber_id": "SI-LC01",
+          "url": "https://data.ipu.org/parliament/SI/SI-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/SI-LC01/csv",
+          "trust_level": 1
+        },
+        {
+          "category": "upper_house_pay_history",
+          "label": "IPU Parline Slovenia National Council basic salary",
+          "chamber_id": "SI-UC01",
+          "url": "https://data.ipu.org/parliament/SI/SI-UC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/SI-UC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "SK": {
+      "name": "Slovakia",
+      "primary_sources": [
+        {
+          "category": "legislation",
+          "label": "National Council legislative search",
+          "url": "https://www.nrsr.sk/web/Default.aspx?sid=zakony/sslp",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-nrsr-sk.ts"
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "parliament_pay_history",
+          "label": "IPU Parline Slovakia National Council basic salary",
+          "chamber_id": "SK-LC01",
+          "url": "https://data.ipu.org/parliament/SK/SK-LC01/parliamentary-mandate/parliamentary-mandate/",
+          "export_url": "https://data.ipu.org/export-historical/basic_salary/SK-LC01/csv",
+          "trust_level": 1
+        }
+      ]
+    },
+    "US": {
+      "name": "United States",
+      "primary_sources": [
+        {
+          "category": "lobbying",
+          "label": "US Senate Lobbying Disclosure Act database",
+          "url": "https://lda.senate.gov/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-us-lda.ts"
+        },
+        {
+          "category": "foreign_agents",
+          "label": "DOJ FARA eFile public search",
+          "url": "https://efile.fara.gov/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-us-fara.ts"
+        },
+        {
+          "category": "legislation",
+          "label": "Congress.gov API",
+          "url": "https://api.congress.gov/",
+          "trust_level": 1,
+          "notes": "Not yet wired to an app sync script."
+        }
+      ],
+      "pay_sources": [
+        {
+          "category": "congress_pay_history",
+          "label": "US Senate salary history",
+          "url": "https://www.senate.gov/artandhistory/history/common/briefing/senate_salaries.htm",
+          "trust_level": 1
+        },
+        {
+          "category": "house_pay",
+          "label": "House Press Gallery salary and expenses reference",
+          "url": "https://pressgallery.house.gov/member-data/salaries",
+          "trust_level": 1
+        }
+      ]
+    }
+  },
+  "strategic_country_sources": {
+    "CN": {
+      "name": "China",
+      "primary_sources": [
+        {
+          "category": "foreign_principals_and_contacts",
+          "label": "DOJ FARA eFile public search for Chinese foreign principals",
+          "url": "https://efile.fara.gov/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-us-fara.ts"
+        },
+        {
+          "category": "sanctions_pep",
+          "label": "OpenSanctions China-related datasets",
+          "url": "https://www.opensanctions.org/datasets/",
+          "trust_level": 2,
+          "existing_script": "scripts/sync-opensanctions.ts"
+        }
+      ],
+      "notes": "Use US/EU foreign-principal disclosures, sanctions, PEP, and company datasets first; domestic lobbying transparency is not equivalent to US/EU disclosure regimes."
+    },
+    "RU": {
+      "name": "Russia",
+      "primary_sources": [
+        {
+          "category": "foreign_principals_and_contacts",
+          "label": "DOJ FARA eFile public search for Russian foreign principals",
+          "url": "https://efile.fara.gov/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-us-fara.ts"
+        },
+        {
+          "category": "sanctions_pep",
+          "label": "OpenSanctions Russia-related datasets",
+          "url": "https://www.opensanctions.org/datasets/",
+          "trust_level": 2,
+          "existing_script": "scripts/sync-opensanctions.ts"
+        }
+      ],
+      "notes": "Use US/EU foreign-principal disclosures, sanctions, PEP, and company datasets first; domestic lobbying transparency is not equivalent to US/EU disclosure regimes."
+    },
+    "IL": {
+      "name": "Israel",
+      "primary_sources": [
+        {
+          "category": "foreign_principals_and_contacts",
+          "label": "DOJ FARA eFile public search for Israeli foreign principals",
+          "url": "https://efile.fara.gov/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-us-fara.ts"
+        },
+        {
+          "category": "sanctions_pep",
+          "label": "OpenSanctions Israel-related datasets",
+          "url": "https://www.opensanctions.org/datasets/",
+          "trust_level": 2,
+          "existing_script": "scripts/sync-opensanctions.ts"
+        }
+      ]
+    },
+    "IR": {
+      "name": "Iran",
+      "primary_sources": [
+        {
+          "category": "foreign_principals_and_contacts",
+          "label": "DOJ FARA eFile public search for Iranian foreign principals",
+          "url": "https://efile.fara.gov/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-us-fara.ts"
+        },
+        {
+          "category": "sanctions_pep",
+          "label": "OpenSanctions Iran-related datasets",
+          "url": "https://www.opensanctions.org/datasets/",
+          "trust_level": 2,
+          "existing_script": "scripts/sync-opensanctions.ts"
+        }
+      ]
+    },
+    "SA": {
+      "name": "Saudi Arabia",
+      "primary_sources": [
+        {
+          "category": "foreign_principals_and_contacts",
+          "label": "DOJ FARA eFile public search for Saudi foreign principals",
+          "url": "https://efile.fara.gov/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-us-fara.ts"
+        },
+        {
+          "category": "sanctions_pep",
+          "label": "OpenSanctions Saudi Arabia-related datasets",
+          "url": "https://www.opensanctions.org/datasets/",
+          "trust_level": 2,
+          "existing_script": "scripts/sync-opensanctions.ts"
+        }
+      ]
+    },
+    "AE": {
+      "name": "United Arab Emirates",
+      "primary_sources": [
+        {
+          "category": "foreign_principals_and_contacts",
+          "label": "DOJ FARA eFile public search for UAE foreign principals",
+          "url": "https://efile.fara.gov/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-us-fara.ts"
+        },
+        {
+          "category": "sanctions_pep",
+          "label": "OpenSanctions UAE-related datasets",
+          "url": "https://www.opensanctions.org/datasets/",
+          "trust_level": 2,
+          "existing_script": "scripts/sync-opensanctions.ts"
+        }
+      ]
+    },
+    "QA": {
+      "name": "Qatar",
+      "primary_sources": [
+        {
+          "category": "foreign_principals_and_contacts",
+          "label": "DOJ FARA eFile public search for Qatari foreign principals",
+          "url": "https://efile.fara.gov/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-us-fara.ts"
+        },
+        {
+          "category": "sanctions_pep",
+          "label": "OpenSanctions Qatar-related datasets",
+          "url": "https://www.opensanctions.org/datasets/",
+          "trust_level": 2,
+          "existing_script": "scripts/sync-opensanctions.ts"
+        }
+      ]
+    },
+    "TR": {
+      "name": "Turkey",
+      "primary_sources": [
+        {
+          "category": "foreign_principals_and_contacts",
+          "label": "DOJ FARA eFile public search for Turkish foreign principals",
+          "url": "https://efile.fara.gov/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-us-fara.ts"
+        },
+        {
+          "category": "sanctions_pep",
+          "label": "OpenSanctions Turkey-related datasets",
+          "url": "https://www.opensanctions.org/datasets/",
+          "trust_level": 2,
+          "existing_script": "scripts/sync-opensanctions.ts"
+        }
+      ]
+    },
+    "EG": {
+      "name": "Egypt",
+      "primary_sources": [
+        {
+          "category": "foreign_principals_and_contacts",
+          "label": "DOJ FARA eFile public search for Egyptian foreign principals",
+          "url": "https://efile.fara.gov/",
+          "trust_level": 1,
+          "existing_script": "scripts/sync-us-fara.ts"
+        },
+        {
+          "category": "sanctions_pep",
+          "label": "OpenSanctions Egypt-related datasets",
+          "url": "https://www.opensanctions.org/datasets/",
+          "trust_level": 2,
+          "existing_script": "scripts/sync-opensanctions.ts"
+        }
+      ]
+    }
+  }
+}

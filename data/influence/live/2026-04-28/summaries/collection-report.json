@@ -1,0 +1,572 @@
+{
+  "generated_at": "2026-04-28T16:19:11.906Z",
+  "sources": {
+    "opensanctions": {
+      "scanned": 4192,
+      "kept": 200,
+      "endpoint": "https://data.opensanctions.org/datasets/latest/default/entities.ftm.json"
+    },
+    "lda:2026 latest filings": {
+      "fetched": 120,
+      "params": {
+        "filing_year": "2026",
+        "ordering": "-dt_posted"
+      }
+    },
+    "eu_transparency_register": {
+      "cards": 25,
+      "rows": 738,
+      "source": "https://www.lobbyfacts.eu"
+    },
+    "lda:2025 latest filings": {
+      "fetched": 60,
+      "params": {
+        "filing_year": "2025",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity CN": {
+      "fetched": 1,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "CN",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country CN": {
+      "fetched": 5,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "CN",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity RU": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "RU",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country RU": {
+      "fetched": 3,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "RU",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity US": {
+      "fetched": 2,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "US",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country US": {
+      "fetched": 5,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "US",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity BH": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "BH",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country BH": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "BH",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity EG": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "EG",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country EG": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "EG",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity IR": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "IR",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country IR": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "IR",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity IQ": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "IQ",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country IQ": {
+      "fetched": 4,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "IQ",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity IL": {
+      "fetched": 5,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "IL",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country IL": {
+      "fetched": 5,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "IL",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity JO": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "JO",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country JO": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "JO",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity KW": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "KW",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country KW": {
+      "fetched": 3,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "KW",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity LB": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "LB",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country LB": {
+      "fetched": 5,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "LB",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity OM": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "OM",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country OM": {
+      "fetched": 1,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "OM",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity PS": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "PS",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country PS": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "PS",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity QA": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "QA",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country QA": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "QA",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity SA": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "SA",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country SA": {
+      "fetched": 3,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "SA",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity SY": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "SY",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country SY": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "SY",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity TR": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "TR",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country TR": {
+      "fetched": 4,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "TR",
+        "ordering": "-dt_posted"
+      }
+    },
+    "us_fara": {
+      "registrants": 8,
+      "principals": 0,
+      "endpoint": "https://efile.fara.gov/api/v1/Registrants/json/Active"
+    },
+    "lda:foreign entity AE": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "AE",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country AE": {
+      "fetched": 5,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "AE",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:foreign entity YE": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "foreign_entity_country": "YE",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client country YE": {
+      "fetched": 0,
+      "params": {
+        "filing_year": "2026",
+        "client_country": "YE",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Meta": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Meta",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Google": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Google",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Amazon": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Amazon",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Apple": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Apple",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Microsoft": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Microsoft",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Boeing": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Boeing",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Lockheed": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Lockheed",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Exxon": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Exxon",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Chevron": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Chevron",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search TikTok": {
+      "fetched": 10,
+      "params": {
+        "client_name": "TikTok",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search ByteDance": {
+      "fetched": 10,
+      "params": {
+        "client_name": "ByteDance",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Saudi": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Saudi",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Qatar": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Qatar",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Emirates": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Emirates",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search UAE": {
+      "fetched": 0,
+      "params": {
+        "client_name": "UAE",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search China": {
+      "fetched": 10,
+      "params": {
+        "client_name": "China",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Russia": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Russia",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Israel": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Israel",
+        "ordering": "-dt_posted"
+      }
+    },
+    "lda:client search Turkey": {
+      "fetched": 10,
+      "params": {
+        "client_name": "Turkey",
+        "ordering": "-dt_posted"
+      }
+    }
+  },
+  "summaries": {
+    "us_lda": {
+      "actors": 411,
+      "companies": 0,
+      "officers": 0,
+      "ownership": 0,
+      "clients": 411,
+      "filings": 411,
+      "contacts": 0,
+      "money": 276,
+      "affiliations": 0
+    },
+    "us_fara": {
+      "actors": 0,
+      "companies": 0,
+      "officers": 0,
+      "ownership": 0,
+      "clients": 0,
+      "filings": 0,
+      "contacts": 0,
+      "money": 0,
+      "affiliations": 0
+    },
+    "opensanctions": {
+      "actors": 200,
+      "companies": 0,
+      "officers": 0,
+      "ownership": 0,
+      "clients": 0,
+      "filings": 0,
+      "contacts": 0,
+      "money": 0,
+      "affiliations": 0
+    },
+    "eu_transparency_register": {
+      "actors": 738,
+      "companies": 0,
+      "officers": 0,
+      "ownership": 0,
+      "clients": 738,
+      "filings": 293,
+      "contacts": 445,
+      "money": 293,
+      "affiliations": 0
+    },
+    "combined": {
+      "actors": 1349,
+      "companies": 0,
+      "officers": 0,
+      "ownership": 0,
+      "clients": 1149,
+      "filings": 704,
+      "contacts": 445,
+      "money": 569,
+      "affiliations": 0
+    }
+  },
+  "artifacts": {
+    "opensanctions_raw": "data/influence/live/2026-04-28/raw/opensanctions-entities.json",
+    "opensanctions_normalized": "data/influence/live/2026-04-28/normalized/opensanctions.json",
+    "eu_transparency_raw": "data/influence/live/2026-04-28/raw/lobbyfacts-datacards.json",
+    "eu_transparency_normalized": "data/influence/live/2026-04-28/normalized/eu-transparency.json",
+    "us_fara_raw": "data/influence/live/2026-04-28/raw/us-fara-api.json",
+    "us_fara_normalized": "data/influence/live/2026-04-28/normalized/us-fara.json",
+    "us_lda_raw": "data/influence/live/2026-04-28/raw/us-lda-api-filings.json",
+    "us_lda_normalized": "data/influence/live/2026-04-28/normalized/us-lda.json",
+    "combined_bundle": "data/influence/live/2026-04-28/normalized/combined-bundle.json",
+    "public_affiliations_review_queue": "data/influence/live/2026-04-28/normalized/public-affiliations-review-queue.json"
+  },
+  "errors": [
+    {
+      "source": "us_fara",
+      "url": "https://efile.fara.gov/api/v1/ForeignPrincipals/json/Active/7716",
+      "message": "fetch failed"
+    },
+    {
+      "source": "us_fara",
+      "url": "https://efile.fara.gov/api/v1/ForeignPrincipals/json/Active/7715",
+      "message": "fetch failed"
+    },
+    {
+      "source": "us_fara",
+      "url": "https://efile.fara.gov/api/v1/ForeignPrincipals/json/Active/7714",
+      "message": "500 500"
+    },
+    {
+      "source": "us_fara",
+      "url": "https://efile.fara.gov/api/v1/ForeignPrincipals/json/Active/7712",
+      "message": "fetch failed"
+    },
+    {
+      "source": "us_lda",
+      "url": "https://lda.senate.gov/api/v1/filings/?filing_year=2026&foreign_entity_country=AE&ordering=-dt_posted&page=1&page_size=25",
+      "message": "429 Too Many Requests"
+    }
+  ],
+  "notes": [
+    "Religion/sect affiliation claims are not inferred. This collector writes no visible affiliation rows; reviewed claims must come from a curated review queue.",
+    "FARA endpoints are rate-limited and may reset connections; failed FARA requests are recorded in this report rather than silently ignored.",
+    "OpenCorporates public API requires credentials in this environment, so company enrichment is deferred to authenticated OpenCorporates runs."
+  ]
+}

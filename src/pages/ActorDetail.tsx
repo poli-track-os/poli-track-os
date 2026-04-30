@@ -3,7 +3,7 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import ActorTimeline from '@/components/ActorTimeline';
 import ActorCharts from '@/components/ActorCharts';
-import { usePolitician, usePoliticianEvents, usePoliticianFinances, usePoliticianInvestments, usePoliticianPosition, useAllPositions, usePoliticianAssociates } from '@/hooks/use-politicians';
+import { usePolitician, usePoliticianEvents, usePoliticianFinances, usePoliticianInvestments, usePoliticianOfficeCompensation, usePoliticianPosition, useAllPositions, usePoliticianAssociates } from '@/hooks/use-politicians';
 import { useCountryMetadata } from '@/hooks/use-country-metadata';
 import { usePartyMetadata } from '@/hooks/use-party-metadata';
 import { useWikipediaPageSummary } from '@/hooks/use-wikipedia-page';
@@ -20,7 +20,9 @@ import { buildCountryRoute, buildInternalPersonRoute, buildPartyRoute, isSamePer
 import { getIdeologyDisplayLabel, hasRenderablePolicyAxes } from '@/lib/political-positioning';
 import { cleanInfoboxValues } from '@/lib/wiki-text';
 import ActorLobbyPanel from '@/components/ActorLobbyPanel';
+import ActorInfluencePanel from '@/components/ActorInfluencePanel';
 import { resolveEpCommitteeAbbr, resolveEpCommitteeUrl } from '@/lib/ep-committees';
+import { officeCompensationTypeLabel } from '@/lib/office-compensation';
 
 const SECTOR_COLORS: Record<string, string> = {
   Technology: 'hsl(215, 30%, 45%)',
@@ -44,6 +46,25 @@ function formatCurrency(value: number | null, currency = 'EUR') {
     currencyDisplay: 'code',
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function formatOfficePay(value: number | null, currency = 'EUR') {
+  if (value === null || value === undefined) return '—';
+  try {
+    return new Intl.NumberFormat('en', {
+      style: 'currency',
+      currency,
+      currencyDisplay: 'code',
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `${Math.round(value).toLocaleString()} ${currency}`;
+  }
+}
+
+function formatRatio(value: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  return `${value.toFixed(value >= 10 ? 0 : 1)}x`;
 }
 
 // Use a UTC-pinned formatter from the shared date-display helper instead
@@ -156,6 +177,7 @@ const ActorDetail = () => {
   const { data: events = [] } = usePoliticianEvents(id);
   const { data: finances } = usePoliticianFinances(id);
   const { data: investments = [] } = usePoliticianInvestments(id);
+  const { data: officeCompensation = [] } = usePoliticianOfficeCompensation(id);
   const { data: position } = usePoliticianPosition(id);
   const { data: allPositions = [] } = useAllPositions();
   const { data: associates = [] } = usePoliticianAssociates(id);
@@ -241,7 +263,17 @@ const ActorDetail = () => {
     sourceUrl: leader.url,
   }));
   const totalInvestmentValue = investments.reduce((s, i) => s + (i.estimated_value || 0), 0);
-  const totalIncome = (finances?.annual_salary || 0) + (finances?.side_income || 0);
+  const roleAnnualPay = officeCompensation[0]?.annual_amount_eur ?? officeCompensation[0]?.annual_amount ?? null;
+  const annualPayForComparison = finances?.annual_salary ?? roleAnnualPay;
+  const totalIncome = (annualPayForComparison || 0) + (finances?.side_income || 0);
+  const declaredAssets = finances?.declared_assets ?? null;
+  const declaredDebt = finances?.declared_debt ?? null;
+  const hasDeclaredWealth = Boolean(finances) &&
+    (declaredAssets !== null || finances?.property_value !== null || Number(declaredDebt || 0) > 0);
+  const declaredNetWorth = hasDeclaredWealth ? Number(declaredAssets || 0) - Number(declaredDebt || 0) : null;
+  const netWorthToSalary = declaredNetWorth !== null && Number(annualPayForComparison || 0) > 0
+    ? declaredNetWorth / Number(annualPayForComparison)
+    : null;
   const displayedIdeology = getIdeologyDisplayLabel(position?.ideology_label);
   const hasOrientationEstimate = hasRenderablePolicyAxes(position);
   const isPartyEstimate = Boolean(position?.data_source?.includes('party_'));
@@ -719,11 +751,11 @@ const ActorDetail = () => {
                   <DollarSign className="w-3 h-3" />
                   FINANCIAL OVERVIEW ({finances.declaration_year})
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
                   <div className="brutalist-border p-3 bg-card">
-                    <div className="text-lg font-extrabold tracking-tighter">{formatCurrency(finances.annual_salary)}</div>
+                    <div className="text-lg font-extrabold tracking-tighter">{formatCurrency(annualPayForComparison)}</div>
                     <div className="text-[10px] font-mono text-muted-foreground uppercase">Annual Salary</div>
-                    <SourceBadge label={finances.salary_source || 'Official record'} type="official" />
+                    <SourceBadge label={finances.salary_source || officeCompensation[0]?.source_label || 'Official record'} type="official" />
                   </div>
                   <div className="brutalist-border p-3 bg-card">
                     <div className="text-lg font-extrabold tracking-tighter">{formatCurrency(finances.side_income)}</div>
@@ -740,7 +772,22 @@ const ActorDetail = () => {
                     <div className="text-[10px] font-mono text-muted-foreground uppercase">Property</div>
                     <SourceBadge label="Declaration" type="official" />
                   </div>
+                  <div className="brutalist-border p-3 bg-card">
+                    <div className="text-lg font-extrabold tracking-tighter">{formatCurrency(finances.declared_debt)}</div>
+                    <div className="text-[10px] font-mono text-muted-foreground uppercase">Declared Debt</div>
+                    <SourceBadge label="Declaration" type="official" />
+                  </div>
+                  <div className="brutalist-border p-3 bg-card">
+                    <div className="text-lg font-extrabold tracking-tighter">{formatCurrency(declaredNetWorth)}</div>
+                    <div className="text-[10px] font-mono text-muted-foreground uppercase">Net Worth</div>
+                    <div className="text-[10px] font-mono text-muted-foreground">{formatRatio(netWorthToSalary)} annual salary</div>
+                  </div>
                 </div>
+                {hasDeclaredWealth && (
+                  <p className="text-[10px] font-mono text-muted-foreground mb-3">
+                    Declared net worth is assets minus declared debt. The pay comparison is a screening signal for review, not evidence of corruption by itself.
+                  </p>
+                )}
                 <ProvenanceBar sources={[
                   ...(finances.salary_source ? [{ label: finances.salary_source, type: 'official' as const }] : []),
                   { label: 'EP transparency register', url: 'https://www.europarl.europa.eu/meps/en/declarations', type: 'official' },
@@ -749,20 +796,57 @@ const ActorDetail = () => {
               </section>
             )}
 
-            {/* Investment Portfolio */}
+            {/* Public Office Pay */}
+            {officeCompensation.length > 0 && (
+              <section className="mb-8">
+                <h2 className="text-xs font-mono font-bold text-muted-foreground mb-3 flex items-center gap-2">
+                  <Briefcase className="w-3 h-3" />
+                  PUBLIC OFFICE PAY
+                </h2>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {officeCompensation.slice(0, 4).map((pay) => (
+                    <div key={`${pay.office_type}-${pay.office_title}-${pay.year}-${pay.source_url}`} className="brutalist-border p-3 bg-card">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-lg font-extrabold tracking-tighter">
+                            {formatOfficePay(pay.annual_amount, pay.currency)}
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground uppercase">
+                            {officeCompensationTypeLabel(pay.office_type)} · {pay.year}
+                          </div>
+                          <div className="text-[10px] font-mono mt-1 break-words">{pay.office_title}</div>
+                        </div>
+                        <SourceBadge label={pay.source_type === 'official' ? 'Official' : 'Curated'} type={pay.source_type === 'official' ? 'official' : 'fact'} />
+                      </div>
+                      <div className="text-[10px] font-mono text-muted-foreground mt-2">
+                        {pay.period === 'annual' ? 'Annual gross base pay' : `Reported period: ${pay.period}`} · allowances and tax treatment vary by source.
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <ProvenanceBar sources={officeCompensation.slice(0, 3).map((pay) => ({
+                  label: pay.source_label,
+                  url: pay.source_url,
+                  type: pay.source_type === 'official' ? 'official' as const : 'fact' as const,
+                }))} />
+              </section>
+            )}
+
+            {/* Disclosed Assets and Investments */}
             {investments.length > 0 && (
               <section className="mb-8">
                 <h2 className="text-xs font-mono font-bold text-muted-foreground mb-3 flex items-center gap-2">
                   <TrendingUp className="w-3 h-3" />
-                  INVESTMENT PORTFOLIO · {investments.length} holdings · {formatCurrency(totalInvestmentValue)}
+                  DISCLOSED ASSETS & INVESTMENTS · {investments.length} items · {formatCurrency(totalInvestmentValue)}
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px] gap-4">
                   <div className="brutalist-border bg-card overflow-hidden">
                     <div className="max-h-[300px] overflow-auto">
-                      <table className="w-full min-w-[420px] text-xs font-mono">
+                      <table className="w-full min-w-[560px] text-xs font-mono">
                         <thead className="sticky top-0 bg-card">
                           <tr className="border-b border-border">
-                            <th className="text-left p-2 font-bold">COMPANY</th>
+                            <th className="text-left p-2 font-bold">ASSET / ENTITY</th>
+                            <th className="text-left p-2 font-bold">TYPE</th>
                             <th className="text-left p-2 font-bold">SECTOR</th>
                             <th className="text-right p-2 font-bold">VALUE</th>
                           </tr>
@@ -775,6 +859,9 @@ const ActorDetail = () => {
                                 <Building2 className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                                   <span className="break-words">{inv.company_name}</span>
                                 </div>
+                              </td>
+                              <td className="p-2">
+                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-secondary">{inv.investment_type.replace(/_/g, ' ')}</span>
                               </td>
                               <td className="p-2">
                                 <span className="px-1.5 py-0.5 rounded text-[10px] bg-muted">{inv.sector || '—'}</span>
@@ -812,8 +899,9 @@ const ActorDetail = () => {
                   )}
                 </div>
                 <ProvenanceBar sources={[
-                  { label: 'Declarations of financial interests', type: 'official' },
+                  { label: 'Declarations of financial interests and assets', type: 'official' },
                   { label: 'EP transparency register', url: 'https://www.europarl.europa.eu/meps/en/declarations', type: 'official' },
+                  { label: 'HATVP public declarations', url: 'https://www.hatvp.fr/consulter-les-declarations/', type: 'official' },
                 ]} />
               </section>
             )}
@@ -862,7 +950,7 @@ const ActorDetail = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between font-mono text-xs">
                     <span>Salary</span>
-                    <span className="font-bold">{formatCurrency(finances.annual_salary)}</span>
+                    <span className="font-bold">{formatCurrency(annualPayForComparison)}</span>
                   </div>
                   {(finances.side_income || 0) > 0 && (
                     <div className="flex justify-between font-mono text-xs">
@@ -876,8 +964,14 @@ const ActorDetail = () => {
                   </div>
                   {investments.length > 0 && (
                     <div className="flex justify-between font-mono text-xs text-muted-foreground">
-                      <span>Investment portfolio</span>
+                      <span>Disclosed assets</span>
                       <span>{formatCurrency(totalInvestmentValue)}</span>
+                    </div>
+                  )}
+                  {declaredNetWorth !== null && (
+                    <div className="flex justify-between font-mono text-xs text-muted-foreground">
+                      <span>Net worth / salary</span>
+                      <span>{formatRatio(netWorthToSalary)}</span>
                     </div>
                   )}
                 </div>
@@ -906,6 +1000,7 @@ const ActorDetail = () => {
             )}
 
             <ActorLobbyPanel politicianId={actor.id} />
+            <ActorInfluencePanel politicianId={actor.id} />
 
             {actor.committees.length > 0 && (
               <div className="brutalist-border p-4">

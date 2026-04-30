@@ -18,6 +18,14 @@ dist-ssr
 !.env.example
 supabase/.temp/
 .claude/
+.agent-task-logs/
+
+# Regenerable source-download caches
+data/**/raw/
+data/**/pdf/
+data/**/text/
+data/**/normalized/
+data/**/*dry-run*/
 
 # Editor directories and files
 .vscode/*

@@ -9,7 +9,7 @@ import { getIdeologyColor } from '@/lib/political-positioning';
 import { EU_COUNTRY_DATA, useDataStats } from '@/hooks/use-data-observatory';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, ScatterChart, Scatter, ZAxis,
+  PieChart, Pie, Cell, Legend, ScatterChart, Scatter, ZAxis, LineChart, Line,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ReferenceLine,
 } from 'recharts';
 import { X } from 'lucide-react';
@@ -29,6 +29,29 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
       {sub && <div className="text-[9px] sm:text-xs text-muted-foreground mt-0.5 hidden sm:block">{sub}</div>}
     </div>
   );
+}
+
+function EmptyDataPanel({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div className="brutalist-border bg-card p-4 min-h-[220px] flex flex-col justify-center">
+      <div className="font-mono text-sm font-bold">{title}</div>
+      <p className="font-mono text-xs text-muted-foreground mt-2 max-w-xl">{detail}</p>
+    </div>
+  );
+}
+
+function formatLocalCurrency(value: number | null | undefined, currency = 'EUR') {
+  if (value === null || value === undefined) return '—';
+  try {
+    return new Intl.NumberFormat('en', {
+      style: 'currency',
+      currency,
+      currencyDisplay: 'code',
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `${Math.round(value).toLocaleString()} ${currency}`;
+  }
 }
 
 // === Detail Panel (click to expand) ===
@@ -273,6 +296,11 @@ const Data = () => {
   const jurisdictionWithTotal = stats.byJurisdiction.map(j => ({ ...j, total }));
   const eventTotal = stats.byEventType.reduce((s, e) => s + e.count, 0);
   const eventsWithTotal = stats.byEventType.map(e => ({ ...e, total: eventTotal }));
+  const officePayTrendKeys = stats.officePayTrendKeys || [];
+  const officePayTrend = stats.officePayTrend || [];
+  const officePayLatestByCountry = stats.officePayLatestByCountry || [];
+  const wealthPayRatios = stats.wealthPayRatios || [];
+  const totalDeclaredNetWorth = stats.totalDeclaredNetWorth || 0;
 
   const handleBarClick = (data: any, _index: any, chartTitle: string, extra?: Record<string, string | number>) => {
     if (!data) return;
@@ -752,10 +780,68 @@ const Data = () => {
 
         {/* Financial summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard label="Total Investment Value" value={`€${(stats.totalInvestmentValue / 1_000_000).toFixed(1)}M`} />
-          <StatCard label="Disclosed Investments" value={stats.totalInvestments} sub={`${stats.politiciansWithInvestments} politicians`} />
+          <StatCard label="Financial Disclosures" value={stats.financialDisclosureCount} sub={`${stats.financialDisclosurePct}% politician coverage`} />
+          <StatCard label="Salary Records" value={stats.salaryDataCount} sub="official standard salary" />
+          <StatCard
+            label="Disclosed Investments"
+            value={stats.totalInvestments}
+            sub={stats.totalInvestments > 0 ? `${stats.politiciansWithInvestments} politicians` : 'PDF extraction pending'}
+          />
           <StatCard label="With Side Income" value={`${stats.sideIncomePct}%`} sub={`${stats.sideIncomeCount} politicians`} />
-          <StatCard label="Investment Sectors" value={stats.bySector.length} />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard label="Public Office Pay Rows" value={stats.officeCompensationCount || 0} sub={`${stats.officeCompensationOfficialCount || 0} official IPU rows`} />
+          <StatCard label="Countries With Pay" value={stats.officeCompensationCountries || 0} sub="role-level compensation" />
+          <StatCard label="Declared Wealth Rows" value={stats.declaredWealthCount || 0} sub="assets or debt disclosed" />
+          <StatCard label="Comparable Wealth/Pay" value={stats.wealthPayRatioCount || 0} sub="net worth with salary" />
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <section>
+            <h2 className="text-lg font-extrabold tracking-tight mb-1 font-mono">DECLARED NET WORTH VS PAY</h2>
+            <p className="text-xs font-mono text-muted-foreground mb-4">Assets minus declared debt compared with annual public pay. This flags cases for review; it is not proof of misconduct.</p>
+            {wealthPayRatios.length > 0 ? (
+              <div className="brutalist-border bg-card overflow-hidden">
+                <table className="w-full text-xs font-mono">
+                  <thead className="bg-card">
+                    <tr className="border-b border-border">
+                      <th className="text-left p-2 font-bold">PERSON</th>
+                      <th className="text-right p-2 font-bold">NET WORTH</th>
+                      <th className="text-right p-2 font-bold">PAY</th>
+                      <th className="text-right p-2 font-bold">RATIO</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {wealthPayRatios.map((row: any) => (
+                      <tr key={`${row.country}-${row.name}`} className="border-b border-border/50 hover:bg-muted/50">
+                        <td className="p-2">
+                          <div className="font-bold">{row.name}</div>
+                          <div className="text-[10px] text-muted-foreground">{row.country}</div>
+                        </td>
+                        <td className="p-2 text-right font-bold">{formatLocalCurrency(row.netWorth, 'EUR')}</td>
+                        <td className="p-2 text-right">{formatLocalCurrency(row.salary, 'EUR')}</td>
+                        <td className="p-2 text-right font-bold">{row.ratio >= 10 ? row.ratio.toFixed(0) : row.ratio.toFixed(1)}x</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <EmptyDataPanel title="No comparable net-worth/pay rows yet" detail="Most disclosure regimes publish interests or salaries without downloadable asset values. Rows appear here only when public asset declarations include numeric values." />
+            )}
+          </section>
+
+          <section>
+            <h2 className="text-lg font-extrabold tracking-tight mb-1 font-mono">OFFICE PAY COVERAGE</h2>
+            <p className="text-xs font-mono text-muted-foreground mb-4">Role-level salary collection status</p>
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard label="Trend Lines" value={officePayTrendKeys.length} sub="EUR-denominated MP series" />
+              <StatCard label="Latest Role Rates" value={officePayLatestByCountry.length} sub="country/type records" />
+              <StatCard label="Declared Net Worth" value={formatLocalCurrency(totalDeclaredNetWorth, 'EUR')} sub="public asset rows only" />
+              <StatCard label="Asset Source Scope" value="Official" sub="no unsourced estimates" />
+            </div>
+          </section>
         </div>
 
         {/* Salary distribution + Avg salary by source */}
@@ -763,55 +849,137 @@ const Data = () => {
           <section>
             <h2 className="text-lg font-extrabold tracking-tight mb-1 font-mono">SALARY DISTRIBUTION</h2>
             <p className="text-xs font-mono text-muted-foreground mb-4">How politician salaries are distributed across income brackets</p>
-            <div className="brutalist-border bg-card p-4">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={stats.salaryDistribution} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fontFamily: 'monospace' }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 11, fontFamily: 'monospace' }} stroke="hsl(var(--muted-foreground))" />
-                  <Tooltip content={<RichBarTooltip totalValue={stats.salaryDistribution.reduce((s: any, b: any) => s + b.count, 0)} totalLabel="Total with salary data" />} />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} className="cursor-pointer"
-                    onClick={(p: any) => {
-                      if (!p) return;
-                      setDetail({
-                        title: `Salary Range: ${p.name}`,
-                        rows: [
-                          { label: 'Politicians', value: p.count },
-                          { label: 'Range', value: p.name },
-                          { label: 'Share', value: `${((p.count / stats.salaryDistribution.reduce((s: number, b: any) => s + b.count, 0)) * 100).toFixed(1)}%` },
-                        ],
-                      });
-                    }} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {stats.salaryDataCount > 0 ? (
+              <div className="brutalist-border bg-card p-4">
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={stats.salaryDistribution} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" tick={{ fontSize: 10, fontFamily: 'monospace' }} stroke="hsl(var(--muted-foreground))" />
+                    <YAxis tick={{ fontSize: 11, fontFamily: 'monospace' }} stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip content={<RichBarTooltip totalValue={stats.salaryDistribution.reduce((s: any, b: any) => s + b.count, 0)} totalLabel="Total with salary data" />} />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} className="cursor-pointer"
+                      onClick={(p: any) => {
+                        if (!p) return;
+                        setDetail({
+                          title: `Salary Range: ${p.name}`,
+                          rows: [
+                            { label: 'Politicians', value: p.count },
+                            { label: 'Range', value: p.name },
+                            { label: 'Share', value: `${((p.count / stats.salaryDistribution.reduce((s: number, b: any) => s + b.count, 0)) * 100).toFixed(1)}%` },
+                          ],
+                        });
+                      }} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <EmptyDataPanel title="No numeric salary rows" detail="Financial declaration records are present, but salary amounts have not been normalized into numeric fields yet." />
+            )}
           </section>
 
           <section>
             <h2 className="text-lg font-extrabold tracking-tight mb-1 font-mono">AVERAGE SALARY BY SOURCE</h2>
             <p className="text-xs font-mono text-muted-foreground mb-4">EP Parliament vs National Government compensation</p>
-            <div className="brutalist-border bg-card p-4">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={stats.avgSalaryBySource} layout="vertical" margin={{ top: 5, right: 20, left: 120, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis type="number" tick={{ fontSize: 11, fontFamily: 'monospace' }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fontFamily: 'monospace' }} width={120} stroke="hsl(var(--muted-foreground))" />
-                  <Tooltip content={<RichBarTooltip />} />
-                  <Bar dataKey="avgSalary" fill="hsl(150, 40%, 40%)" radius={[0, 2, 2, 0]} className="cursor-pointer"
-                    onClick={(p: any) => {
-                      if (!p) return;
-                      setDetail({
-                        title: `Salary Source: ${p.name}`,
-                        rows: [
-                          { label: 'Average Salary', value: `€${p.avgSalary.toLocaleString()}` },
-                          { label: 'Sample Size', value: `${p.count} politicians` },
-                          { label: 'Source', value: p.name },
-                        ],
-                      });
-                    }} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {stats.avgSalaryBySource.length > 0 ? (
+              <div className="brutalist-border bg-card p-4">
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={stats.avgSalaryBySource} layout="vertical" margin={{ top: 5, right: 20, left: 120, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis type="number" tick={{ fontSize: 11, fontFamily: 'monospace' }} stroke="hsl(var(--muted-foreground))" />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fontFamily: 'monospace' }} width={120} stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip content={<RichBarTooltip />} />
+                    <Bar dataKey="avgSalary" fill="hsl(150, 40%, 40%)" radius={[0, 2, 2, 0]} className="cursor-pointer"
+                      onClick={(p: any) => {
+                        if (!p) return;
+                        setDetail({
+                          title: `Salary Source: ${p.name}`,
+                          rows: [
+                            { label: 'Average Salary', value: `€${p.avgSalary.toLocaleString()}` },
+                            { label: 'Sample Size', value: `${p.count} politicians` },
+                            { label: 'Source', value: p.name },
+                          ],
+                        });
+                      }} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <EmptyDataPanel title="No salary source breakdown" detail="Salary records exist only after a numeric amount is normalized from an official compensation source." />
+            )}
+          </section>
+        </div>
+
+        <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-6">
+          <section>
+            <h2 className="text-lg font-extrabold tracking-tight mb-1 font-mono">PUBLIC OFFICE PAY OVER TIME</h2>
+            <p className="text-xs font-mono text-muted-foreground mb-4">
+              Official IPU basic salary histories for the highest current EUR-denominated parliament member rates
+            </p>
+            {officePayTrend.length > 0 && officePayTrendKeys.length > 0 ? (
+              <div className="brutalist-border bg-card p-4">
+                <ResponsiveContainer width="100%" height={320}>
+                  <LineChart data={officePayTrend} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="year" tick={{ fontSize: 10, fontFamily: 'monospace' }} stroke="hsl(var(--muted-foreground))" />
+                    <YAxis tick={{ fontSize: 11, fontFamily: 'monospace' }} stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `€${Math.round(Number(value) / 1000)}K`} />
+                    <Tooltip formatter={(value: number, name: string) => [formatLocalCurrency(Number(value), 'EUR'), name]} />
+                    <Legend formatter={(value: string) => <span className="text-xs font-mono">{value}</span>} />
+                    {officePayTrendKeys.map((key: string, index: number) => (
+                      <Line
+                        key={key}
+                        type="monotone"
+                        dataKey={key}
+                        stroke={COLORS[index % COLORS.length]}
+                        strokeWidth={2}
+                        dot={false}
+                        connectNulls
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <EmptyDataPanel title="No comparable pay trend yet" detail="Office-pay rows were collected, but no EUR-denominated member salary time series is available for the selected countries." />
+            )}
+          </section>
+
+          <section>
+            <h2 className="text-lg font-extrabold tracking-tight mb-1 font-mono">LATEST PAY BY COUNTRY AND ROLE</h2>
+            <p className="text-xs font-mono text-muted-foreground mb-4">Latest normalized amount per country, office type, and source</p>
+            {officePayLatestByCountry.length > 0 ? (
+              <div className="brutalist-border bg-card overflow-hidden">
+                <div className="max-h-[360px] overflow-auto">
+                  <table className="w-full min-w-[520px] text-xs font-mono">
+                    <thead className="sticky top-0 bg-card">
+                      <tr className="border-b border-border">
+                        <th className="text-left p-2 font-bold">COUNTRY</th>
+                        <th className="text-left p-2 font-bold">ROLE</th>
+                        <th className="text-right p-2 font-bold">AMOUNT</th>
+                        <th className="text-right p-2 font-bold">YEAR</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {officePayLatestByCountry.slice(0, 120).map((row: any) => (
+                        <tr key={`${row.countryCode}-${row.officeType}-${row.officeTitle}`} className="border-b border-border/50 hover:bg-muted/50">
+                          <td className="p-2">
+                            <div className="font-bold">{row.countryCode}</div>
+                            <div className="text-[10px] text-muted-foreground truncate max-w-[140px]">{row.countryName}</div>
+                          </td>
+                          <td className="p-2">
+                            <div className="font-bold">{String(row.officeType).replace(/_/g, ' ')}</div>
+                            <div className="text-[10px] text-muted-foreground truncate max-w-[220px]">{row.officeTitle}</div>
+                          </td>
+                          <td className="p-2 text-right font-bold">{formatLocalCurrency(row.amount, row.currency)}</td>
+                          <td className="p-2 text-right">{row.year}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <EmptyDataPanel title="No public office pay rows" detail="Run the office compensation sync to collect role-level salaries, allowances, and leader pay." />
+            )}
           </section>
         </div>
 
@@ -820,26 +988,36 @@ const Data = () => {
           <section>
             <h2 className="text-lg font-extrabold tracking-tight mb-1 font-mono">INVESTMENT BY SECTOR</h2>
             <p className="text-xs font-mono text-muted-foreground mb-4">Where politicians put their money — total disclosed value per sector</p>
-            <div className="brutalist-border bg-card p-4">
-              <ResponsiveContainer width="100%" height={350}>
-                <PieChart>
-                  <Pie data={stats.bySector} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={130} innerRadius={50}
-                    onClick={(d) => handlePieClick(d, 'Investment Sector')}>
-                    {stats.bySector.map((_: any, i: number) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} className="cursor-pointer" />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<RichPieTooltip totalValue={stats.totalInvestmentValue} />} />
-                  <Legend formatter={(v: string) => <span className="text-xs font-mono">{v}</span>} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            {stats.bySector.length > 0 && stats.totalInvestmentValue > 0 ? (
+              <div className="brutalist-border bg-card p-4">
+                <ResponsiveContainer width="100%" height={350}>
+                  <PieChart>
+                    <Pie data={stats.bySector} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={130} innerRadius={50}
+                      onClick={(d) => handlePieClick(d, 'Investment Sector')}>
+                      {stats.bySector.map((_: any, i: number) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} className="cursor-pointer" />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<RichPieTooltip totalValue={stats.totalInvestmentValue} />} />
+                    <Legend formatter={(v: string) => <span className="text-xs font-mono">{v}</span>} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : stats.bySector.length > 0 ? (
+              <EmptyDataPanel
+                title="Holdings parsed without valuations"
+                detail={`${stats.totalInvestments} holdings or partnerships were extracted from public declarations, but the DPI form does not disclose market values for them.`}
+              />
+            ) : (
+              <EmptyDataPanel title="Investment extraction pending" detail="Financial declaration PDFs are linked, but individual holdings require PDF text extraction and review before investment values are shown." />
+            )}
           </section>
 
           <section>
             <h2 className="text-lg font-extrabold tracking-tight mb-1 font-mono">MOST POPULAR INVESTMENTS</h2>
             <p className="text-xs font-mono text-muted-foreground mb-4">Companies with the most politician-investors</p>
-            <div className="brutalist-border bg-card overflow-hidden">
+            {stats.topCompanies.length > 0 ? (
+              <div className="brutalist-border bg-card overflow-hidden">
               <div className="max-h-[390px] overflow-y-auto">
                 <table className="w-full text-xs font-mono">
                   <thead className="sticky top-0 bg-card">
@@ -859,20 +1037,23 @@ const Data = () => {
                             { label: 'Company', value: c.name },
                             { label: 'Sector', value: c.sector || 'N/A' },
                             { label: 'Politician Investors', value: c.investors },
-                            { label: 'Total Value', value: `€${(c.value / 1000).toFixed(0)}K` },
-                            { label: 'Avg per Investor', value: c.investors > 0 ? `€${(c.value / c.investors / 1000).toFixed(0)}K` : '—' },
+                            { label: 'Total Value', value: c.value > 0 ? `€${(c.value / 1000).toFixed(0)}K` : 'not disclosed' },
+                            { label: 'Avg per Investor', value: c.value > 0 && c.investors > 0 ? `€${(c.value / c.investors / 1000).toFixed(0)}K` : 'not disclosed' },
                           ],
                         })}>
                         <td className="p-2 font-medium">{c.name}</td>
                         <td className="p-2"><span className="px-1.5 py-0.5 rounded text-[10px] bg-muted">{c.sector}</span></td>
                         <td className="p-2 text-right font-bold">{c.investors}</td>
-                        <td className="p-2 text-right text-muted-foreground">€{(c.value / 1000).toFixed(0)}K</td>
+                        <td className="p-2 text-right text-muted-foreground">{c.value > 0 ? `€${(c.value / 1000).toFixed(0)}K` : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
+              </div>
+            ) : (
+              <EmptyDataPanel title="No parsed investment positions" detail="The source filings are tracked as financial disclosures; company-level holdings will appear here once the PDF parser extracts them." />
+            )}
           </section>
         </div>
 
@@ -880,28 +1061,32 @@ const Data = () => {
         <section>
           <h2 className="text-lg font-extrabold tracking-tight mb-1 font-mono">HOLDINGS PER SECTOR</h2>
           <p className="text-xs font-mono text-muted-foreground mb-4">Number of individual investment positions by sector</p>
-          <div className="brutalist-border bg-card p-4">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={stats.bySector} margin={{ top: 5, right: 5, left: 5, bottom: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} tick={{ fontSize: 11, fontFamily: 'monospace' }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis tick={{ fontSize: 11, fontFamily: 'monospace' }} stroke="hsl(var(--muted-foreground))" />
-                <Tooltip content={<RichBarTooltip totalValue={stats.totalInvestments} totalLabel="Total Holdings" />} />
-                <Bar dataKey="count" fill="hsl(280, 30%, 50%)" radius={[2, 2, 0, 0]} className="cursor-pointer"
-                  onClick={(p: any) => {
-                    if (!p) return;
-                    setDetail({
-                      title: `Sector: ${p.name}`,
-                      rows: [
-                        { label: 'Holdings', value: p.count },
-                        { label: 'Total Value', value: `€${(p.value / 1000).toFixed(0)}K` },
-                        { label: 'Avg per Holding', value: p.count > 0 ? `€${(p.value / p.count / 1000).toFixed(0)}K` : '—' },
-                      ],
-                    });
-                  }} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {stats.bySector.length > 0 ? (
+            <div className="brutalist-border bg-card p-4">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={stats.bySector} margin={{ top: 5, right: 5, left: 5, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} tick={{ fontSize: 11, fontFamily: 'monospace' }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis tick={{ fontSize: 11, fontFamily: 'monospace' }} stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip content={<RichBarTooltip totalValue={stats.totalInvestments} totalLabel="Total Holdings" />} />
+                  <Bar dataKey="count" fill="hsl(280, 30%, 50%)" radius={[2, 2, 0, 0]} className="cursor-pointer"
+                    onClick={(p: any) => {
+                      if (!p) return;
+                      setDetail({
+                        title: `Sector: ${p.name}`,
+                        rows: [
+                          { label: 'Holdings', value: p.count },
+                          { label: 'Total Value', value: `€${(p.value / 1000).toFixed(0)}K` },
+                          { label: 'Avg per Holding', value: p.count > 0 ? `€${(p.value / p.count / 1000).toFixed(0)}K` : '—' },
+                        ],
+                      });
+                    }} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <EmptyDataPanel title="No sector holdings yet" detail="Investment sector charts stay hidden until reviewed holdings are inserted into politician_investments." />
+          )}
         </section>
 
         {/* Political Ideology & Orientation */}
@@ -1180,7 +1365,7 @@ const Data = () => {
             </a>
             <a href="https://www.europarl.europa.eu/meps/en/declarations" target="_blank" rel="noopener noreferrer" className="brutalist-border p-4 bg-card hover:bg-secondary transition-colors">
               <div className="text-sm font-bold">Financial Disclosures</div>
-              <div className="text-xs font-mono text-muted-foreground mt-1">{stats.totalInvestments} positions tracked</div>
+              <div className="text-xs font-mono text-muted-foreground mt-1">{stats.financialDisclosureCount} disclosures · {stats.totalInvestments} investments parsed</div>
               <div className="text-xs text-accent mt-2">Declarations of interest →</div>
             </a>
             <a href="https://ec.europa.eu" target="_blank" rel="noopener noreferrer" className="brutalist-border p-4 bg-card hover:bg-secondary transition-colors">

@@ -1,0 +1,13 @@
+{
+  "apply": false,
+  "output_dir": "data/financial-disclosures/live/2026-04-29",
+  "finance_rows_seen": 718,
+  "pdfs_parsed": 718,
+  "pdf_errors": 0,
+  "finance_updates_planned": 0,
+  "side_income_updates_planned": 0,
+  "declaration_year_corrections_planned": 0,
+  "holdings_planned": 0,
+  "investments_inserted": 0,
+  "errors": []
+}

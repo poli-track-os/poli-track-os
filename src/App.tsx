@@ -17,10 +17,25 @@ const About = lazy(() => import("./pages/About.tsx"));
 const Data = lazy(() => import("./pages/Data.tsx"));
 const Budgets = lazy(() => import("./pages/Budgets.tsx"));
 const Lobby = lazy(() => import("./pages/Lobby.tsx"));
+const Influence = lazy(() => import("./pages/Influence.tsx"));
+const InfluenceOrgDetail = lazy(() => import("./pages/InfluenceOrgDetail.tsx"));
+const InfluencePersonDetail = lazy(() => import("./pages/InfluencePersonDetail.tsx"));
+const InfluenceCountryDetail = lazy(() => import("./pages/InfluenceCountryDetail.tsx"));
+const InfluenceNetwork = lazy(() => import("./pages/InfluenceNetwork.tsx"));
 const Timeline = lazy(() => import("./pages/Timeline.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 30,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => {
   const { theme, toggleTheme } = useThemeMode();
@@ -32,7 +47,7 @@ const App = () => {
         <BrowserRouter basename={routerBase} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Suspense
             fallback={
-              <div className="min-h-screen flex items-center justify-center font-mono text-sm text-muted-foreground">
+              <div className="container py-8 font-mono text-sm text-muted-foreground">
                 Loading...
               </div>
             }
@@ -50,6 +65,11 @@ const App = () => {
               <Route path="/data" element={<Data />} />
               <Route path="/budgets" element={<Budgets />} />
               <Route path="/lobby" element={<Lobby />} />
+              <Route path="/influence" element={<Influence />} />
+              <Route path="/influence/org/:id" element={<InfluenceOrgDetail />} />
+              <Route path="/influence/person/:id" element={<InfluencePersonDetail />} />
+              <Route path="/influence/country/:code" element={<InfluenceCountryDetail />} />
+              <Route path="/influence/network" element={<InfluenceNetwork />} />
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/about" element={<About />} />
               <Route path="*" element={<NotFound />} />
