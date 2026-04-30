@@ -1,0 +1,106 @@
+{
+  "generated_at": "2026-04-30T14:42:24.616Z",
+  "apply": true,
+  "args": {
+    "apply": true,
+    "outputDir": "data/influence/public-records/live/2026-04-30",
+    "fecCycle": 2026,
+    "fecLimit": 40,
+    "secCompanies": 12,
+    "secFilingsPerCompany": 6,
+    "usaspendingLimit": 3,
+    "foiaLimit": 75,
+    "skipFec": false,
+    "skipSec": false,
+    "skipUsaspending": false,
+    "skipFoia": false,
+    "skipAdvisory": false,
+    "allowSourceErrors": false
+  },
+  "source_summaries": {
+    "us_fec": {
+      "actors": 40,
+      "companies": 0,
+      "officers": 0,
+      "ownership": 0,
+      "clients": 0,
+      "filings": 40,
+      "contacts": 0,
+      "money": 80,
+      "affiliations": 0
+    },
+    "sec_edgar": {
+      "actors": 12,
+      "companies": 12,
+      "officers": 0,
+      "ownership": 0,
+      "clients": 0,
+      "filings": 72,
+      "contacts": 0,
+      "money": 0,
+      "affiliations": 0
+    },
+    "usaspending": {
+      "actors": 9,
+      "companies": 36,
+      "officers": 0,
+      "ownership": 0,
+      "clients": 36,
+      "filings": 36,
+      "contacts": 0,
+      "money": 36,
+      "affiliations": 0
+    },
+    "us_foia": {
+      "actors": 71,
+      "companies": 0,
+      "officers": 0,
+      "ownership": 0,
+      "clients": 0,
+      "filings": 50,
+      "contacts": 0,
+      "money": 0,
+      "affiliations": 0
+    },
+    "advisory": {
+      "actors": 34,
+      "companies": 0,
+      "officers": 0,
+      "ownership": 0,
+      "clients": 0,
+      "filings": 3,
+      "contacts": 31,
+      "money": 0,
+      "affiliations": 0
+    }
+  },
+  "source_errors": {},
+  "summary": {
+    "actors": 166,
+    "companies": 48,
+    "officers": 0,
+    "ownership": 0,
+    "clients": 36,
+    "filings": 201,
+    "contacts": 31,
+    "money": 116,
+    "affiliations": 0
+  },
+  "artifacts": {
+    "rawPath": "data/influence/public-records/live/2026-04-30/raw/public-records.json",
+    "bundlePath": "data/influence/public-records/live/2026-04-30/normalized/public-record-influence-bundle.json",
+    "reportPath": "data/influence/public-records/live/2026-04-30/summaries/public-record-collection-report.json"
+  },
+  "status": "completed",
+  "applied": {
+    "actors": 166,
+    "companies": 48,
+    "officers": 0,
+    "ownership": 0,
+    "clients": 36,
+    "filings": 201,
+    "contacts": 31,
+    "money": 116,
+    "affiliations": 0
+  }
+}
