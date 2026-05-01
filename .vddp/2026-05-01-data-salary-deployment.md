@@ -91,3 +91,55 @@ observations: Focused test passed 3 tests; typecheck passed; lint exited 0 with 
 decision: keep
 risks: GitHub Pages will not show the new bundle until `main` is pushed and the Pages workflow completes.
 next_todo: Commit branch changes, fast-forward `main`, push `main`, then verify deployed asset changes.
+
+## Deployment Workflow TODO Triage
+
+TODO: Prevent skipped PR workflow-run deploys from cancelling an in-progress main Pages deploy.
+1. Gold standard: the successful main CI-triggered Pages deploy completes even if later PR CI workflow-run events evaluate the deploy job condition to skipped.
+2. Existing code: `deploy-supabase.yml` already uses `cancel-in-progress: false`; `deploy-pages.yml` was the outlier with `true`.
+3. Online source check: not required; this follows GitHub Actions' local concurrency configuration already used in the repository.
+4. Literature check: not required.
+
+## Deployment Iteration 1
+
+goal: Diagnose why the pushed main commit was still not live.
+changes: None.
+commands: `curl -L -s https://poli-track-os.github.io/poli-track-os/data`; GitHub Actions REST polling for workflow runs.
+exit_codes: `0`; `3`
+artifacts: `https://github.com/poli-track-os/poli-track-os/actions/runs/25212489820`, `https://github.com/poli-track-os/poli-track-os/actions/runs/25212524038`
+observations: CI for `04c1daf` completed successfully, but the first `Deploy Website` run was cancelled and subsequent deploy runs were skipped; the public page still served `/poli-track-os/assets/index-DJFGf8N3.js`.
+decision: keep
+risks: Static deploy concurrency with `cancel-in-progress: true` lets skipped workflow-run events cancel a valid main deploy.
+next_todo: Patch Pages deploy concurrency to match the Supabase deploy workflow's non-cancelling queue behavior.
+
+## Deployment Critique Pass 1
+
+Flaws:
+- Trigger filtering already exists in the job `if`, but it happens after workflow-level concurrency, so skipped runs can still cancel earlier valid runs.
+- Manually re-running Pages would be a temporary workaround, not a durable fix.
+
+Patch todo:
+- Change only `deploy-pages.yml` from `cancel-in-progress: true` to `false`.
+- Validate YAML syntax and whitespace.
+
+## Deployment Iteration 2
+
+goal: Patch deploy workflow cancellation behavior.
+changes: Changed `deploy-pages.yml` concurrency to `cancel-in-progress: false`.
+commands: `git diff --check -- .github/workflows/deploy-pages.yml .vddp/2026-05-01-data-salary-deployment.md`; `node -e "import('yaml')..."`
+exit_codes: `0`; `0`
+artifacts: `.github/workflows/deploy-pages.yml`
+observations: Whitespace check passed; YAML parse passed with the local `yaml` package. Ruby was unavailable, so Node/YAML was used.
+decision: keep
+risks: Non-cancelling deploy queue can let an older Pages deploy finish before a newer queued one, but queued later successful deploys still run afterward; skipped runs exit quickly.
+next_todo: Run second critique pass, then commit and push the workflow fix.
+
+## Deployment Critique Pass 2
+
+Flaws:
+- Changing deployment concurrency is a workflow behavior change, so it must stay as narrow as possible.
+- The Supabase deploy workflow already has the desired behavior, so touching it would add unnecessary risk.
+
+Patch todo:
+- Keep the change limited to `deploy-pages.yml`.
+- After push, verify CI and Pages deploy status again and confirm the public asset hash changes.
