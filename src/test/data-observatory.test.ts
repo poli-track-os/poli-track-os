@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildSalaryAnalytics,
   mapOverviewRowToCoveragePolitician,
   normalizePoliticalEventStatsPayload,
   normalizeProposalStatsPayload,
@@ -47,5 +48,48 @@ describe('data observatory helpers', () => {
     expect(proposalStats.byArea[0]?.name).toBe('Tax Policy');
     expect(proposalStats.byType[0]?.name).toBe('Budget Bill');
     expect(eventStats.byType[0]?.name).toBe('Committee Join');
+  });
+
+  it('builds salary analytics from finance rows and office compensation without unknown source buckets', () => {
+    const result = buildSalaryAnalytics(
+      [
+        { annual_salary: 100000, salary_source: 'Unknown' },
+        { annual_salary: 135000, salary_source: 'European Parliament MEP salary' },
+        { annual_salary: 0, salary_source: 'Ignored' },
+      ],
+      [
+        {
+          amount: 90000,
+          amountEur: 90000,
+          currency: 'EUR',
+          sourceLabel: 'IPU Parline basic salary history',
+          sourceType: 'official',
+        },
+        {
+          amount: 120000,
+          amountEur: 120000,
+          currency: 'EUR',
+          sourceLabel: 'Source',
+          sourceType: 'official',
+        },
+        {
+          amount: 50000,
+          amountEur: null,
+          currency: 'USD',
+          sourceLabel: 'Ignored non-EUR',
+          sourceType: 'official',
+        },
+      ],
+    );
+
+    expect(result.salaryDataCount).toBe(4);
+    expect(result.salaryDistribution.reduce((sum, bucket) => sum + bucket.count, 0)).toBe(4);
+    expect(result.avgSalaryBySource.map((row) => row.name)).toEqual(expect.arrayContaining([
+      'Politician finance disclosure',
+      'European Parliament MEP salary',
+      'IPU Parline basic salary history',
+      'Official office compensation',
+    ]));
+    expect(result.avgSalaryBySource.some((row) => row.name === 'Unknown')).toBe(false);
   });
 });

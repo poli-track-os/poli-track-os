@@ -54,6 +54,24 @@ type PoliticalEventStatsPayload = {
   byType: NamedCountBucket[];
 };
 
+type SalaryAnalyticsRow = {
+  amount: number;
+  source: string;
+};
+
+type FinanceSalaryRow = {
+  annual_salary?: number | string | null;
+  salary_source?: string | null;
+};
+
+type LatestOfficePaySalaryRow = {
+  amount?: number | string | null;
+  amountEur?: number | string | null;
+  currency?: string | null;
+  sourceLabel?: string | null;
+  sourceType?: string | null;
+};
+
 type LegacyOverviewRow = Pick<
   Tables<'politicians'>,
   | 'id'
@@ -145,6 +163,67 @@ export function mapOverviewRowToCoveragePolitician(row: ObservatoryOverviewRow):
     enriched_at: row.enriched_at,
     birth_year: row.birth_year,
     twitter_handle: row.twitter_handle,
+  };
+}
+
+function cleanSalarySource(value: unknown, fallback: string) {
+  const text = String(value || '').trim();
+  const normalized = text.toLowerCase();
+  if (!text || normalized === 'unknown' || normalized === 'source' || normalized === 'n/a') return fallback;
+  return text;
+}
+
+export function buildSalaryAnalytics(finances: FinanceSalaryRow[], latestOfficePay: LatestOfficePaySalaryRow[]) {
+  const salaryRecords: SalaryAnalyticsRow[] = [];
+
+  finances.forEach((finance) => {
+    const amount = Number(finance.annual_salary || 0);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    salaryRecords.push({
+      amount,
+      source: cleanSalarySource(finance.salary_source, 'Politician finance disclosure'),
+    });
+  });
+
+  latestOfficePay.forEach((row) => {
+    const amountEur = row.amountEur === null || row.amountEur === undefined ? 0 : Number(row.amountEur || 0);
+    const amount = amountEur > 0 ? amountEur : (row.currency === 'EUR' ? Number(row.amount || 0) : 0);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    const sourceFallback = row.sourceType
+      ? `${titleize(String(row.sourceType))} office compensation`
+      : 'Official office compensation';
+    salaryRecords.push({
+      amount,
+      source: cleanSalarySource(row.sourceLabel, sourceFallback),
+    });
+  });
+
+  const salaryBuckets = [
+    { range: '< €80K', min: 0, max: 80000, count: 0 },
+    { range: '€80-120K', min: 80000, max: 120000, count: 0 },
+    { range: '€120-150K', min: 120000, max: 150000, count: 0 },
+    { range: '€150-200K', min: 150000, max: 200000, count: 0 },
+    { range: '> €200K', min: 200000, max: Infinity, count: 0 },
+  ];
+
+  salaryRecords.forEach((record) => {
+    const bucket = salaryBuckets.find((entry) => record.amount >= entry.min && record.amount < entry.max);
+    if (bucket) bucket.count++;
+  });
+
+  const salaryBySource: Record<string, { total: number; count: number }> = {};
+  salaryRecords.forEach((record) => {
+    if (!salaryBySource[record.source]) salaryBySource[record.source] = { total: 0, count: 0 };
+    salaryBySource[record.source].total += record.amount;
+    salaryBySource[record.source].count++;
+  });
+
+  return {
+    salaryDataCount: salaryRecords.length,
+    salaryDistribution: salaryBuckets.map((bucket) => ({ name: bucket.range, count: bucket.count, min: bucket.min, max: bucket.max })),
+    avgSalaryBySource: Object.entries(salaryBySource)
+      .map(([name, { total, count }]) => ({ name, avgSalary: Math.round(total / count), count }))
+      .sort((left, right) => right.count - left.count || right.avgSalary - left.avgSalary || left.name.localeCompare(right.name)),
   };
 }
 
@@ -333,7 +412,7 @@ async function fetchProposalStats() {
 
 export function useDataStats() {
   return useQuery({
-    queryKey: ['data-stats', 'finance-v2'],
+    queryKey: ['data-stats', 'finance-v3'],
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -517,21 +596,6 @@ export function useDataStats() {
       const finances = financesData;
       const invData = investmentsData;
       const officeCompensation = officeCompensationData;
-      const salaryDataCount = finances.filter((finance: any) => Number(finance.annual_salary || 0) > 0).length;
-
-      const salaryBuckets = [
-        { range: '< €80K', min: 0, max: 80000, count: 0 },
-        { range: '€80-120K', min: 80000, max: 120000, count: 0 },
-        { range: '€120-150K', min: 120000, max: 150000, count: 0 },
-        { range: '€150-200K', min: 150000, max: 200000, count: 0 },
-        { range: '> €200K', min: 200000, max: Infinity, count: 0 },
-      ];
-      finances.forEach((finance: any) => {
-        if (!finance.annual_salary) return;
-        const bucket = salaryBuckets.find((entry) => finance.annual_salary >= entry.min && finance.annual_salary < entry.max);
-        if (bucket) bucket.count++;
-      });
-      const salaryDistribution = salaryBuckets.map((bucket) => ({ name: bucket.range, count: bucket.count, min: bucket.min, max: bucket.max }));
 
       const sectorTotals: Record<string, { value: number; count: number }> = {};
       invData.forEach((investment: any) => {
@@ -557,18 +621,6 @@ export function useDataStats() {
         .sort((left, right) => right.investors - left.investors)
         .slice(0, 15);
 
-      const salaryBySource: Record<string, { total: number; count: number }> = {};
-      finances.forEach((finance: any) => {
-        if (!Number(finance.annual_salary || 0)) return;
-        const source = finance.salary_source || 'Unknown';
-        if (!salaryBySource[source]) salaryBySource[source] = { total: 0, count: 0 };
-        salaryBySource[source].total += Number(finance.annual_salary || 0);
-        salaryBySource[source].count++;
-      });
-      const avgSalaryBySource = Object.entries(salaryBySource)
-        .map(([name, { total, count }]) => ({ name, avgSalary: Math.round(total / count), count }))
-        .sort((left, right) => right.avgSalary - left.avgSalary);
-
       const latestOfficePay = [...officeCompensation.reduce((acc: Map<string, any>, row: any) => {
         if (!row.country_code || !row.office_type || !Number.isFinite(Number(row.annual_amount))) return acc;
         const key = `${row.country_code}:${row.office_type}:${row.office_title}`;
@@ -592,6 +644,7 @@ export function useDataStats() {
           sourceUrl: row.source_url || null,
         }))
         .sort((left, right) => left.countryCode.localeCompare(right.countryCode) || left.officeType.localeCompare(right.officeType));
+      const { salaryDataCount, salaryDistribution, avgSalaryBySource } = buildSalaryAnalytics(finances, latestOfficePay);
 
       const latestMemberPayEur = latestOfficePay
         .filter((row) => row.officeType === 'member_of_parliament' && row.currency === 'EUR')

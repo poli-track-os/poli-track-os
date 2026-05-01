@@ -781,7 +781,7 @@ const Data = () => {
         {/* Financial summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard label="Financial Disclosures" value={stats.financialDisclosureCount} sub={`${stats.financialDisclosurePct}% politician coverage`} />
-          <StatCard label="Salary Records" value={stats.salaryDataCount} sub="official standard salary" />
+          <StatCard label="Salary Records" value={stats.salaryDataCount} sub="person and role-level pay" />
           <StatCard
             label="Disclosed Investments"
             value={stats.totalInvestments}
@@ -879,7 +879,7 @@ const Data = () => {
 
           <section>
             <h2 className="text-lg font-extrabold tracking-tight mb-1 font-mono">AVERAGE SALARY BY SOURCE</h2>
-            <p className="text-xs font-mono text-muted-foreground mb-4">EP Parliament vs National Government compensation</p>
+            <p className="text-xs font-mono text-muted-foreground mb-4">Person salary records plus latest role-level office compensation</p>
             {stats.avgSalaryBySource.length > 0 ? (
               <div className="brutalist-border bg-card p-4">
                 <ResponsiveContainer width="100%" height={300}>
